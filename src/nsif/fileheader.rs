@@ -1,62 +1,108 @@
 use std::cmp::max;
 use std::fmt::Display;
+use std::vec;
 use std::{fs::File, io::Read};
 
-#[derive(Debug)]
+use bevy_reflect::Reflect;
+
+use bevy_reflect::Struct;
+
+#[derive(Debug, Reflect)]
+enum FieldValue {
+    Single(Vec<u8>),
+    Multiple(Vec<Vec<u8>>),
+}
+
+#[derive(Debug, Reflect)]
+pub struct Field {
+    name: String,
+    value: FieldValue,
+}
+
+impl Field {
+    fn from_single(name: &str, vec: Vec<u8>) -> Field {
+        Field {
+            name: name.to_owned(),
+            value: FieldValue::Single(vec),
+        }
+    }
+
+    fn from_multiple(name: &str, vec: Vec<Vec<u8>>) -> Field {
+        Field {
+            name: name.to_owned(),
+            value: FieldValue::Multiple(vec),
+        }
+    }
+}
+
+impl Display for Field {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.value {
+            FieldValue::Single(value) => {
+                write!(f, "{}: {}", self.name, parse_string(&value).unwrap())
+            }
+            FieldValue::Multiple(_) => todo!(),
+        }
+    }
+}
+
+#[derive(Debug, Reflect)]
 pub struct FileHeader {
-    fhdr: Vec<u8>,
-    fver: Vec<u8>,
-    clevel: Vec<u8>,
-    stype: Vec<u8>,
-    ostaid: Vec<u8>,
-    fdt: Vec<u8>,
-    ftitle: Vec<u8>,
-    fsclas: Vec<u8>,
-    fsclsy: Vec<u8>,
-    fscode: Vec<u8>,
-    fsctlh: Vec<u8>,
-    fsrel: Vec<u8>,
-    fsdctp: Vec<u8>,
-    fsdcdt: Vec<u8>,
-    fsdcxm: Vec<u8>,
-    fsdg: Vec<u8>,
-    fsdgdt: Vec<u8>,
-    fscltx: Vec<u8>,
-    fscatp: Vec<u8>,
-    fscaut: Vec<u8>,
-    fscrsn: Vec<u8>,
-    fssrdt: Vec<u8>,
-    fsctln: Vec<u8>,
-    fscop: Vec<u8>,
-    fscpys: Vec<u8>,
-    encryp: Vec<u8>,
-    fbkgc: Vec<u8>,
-    oname: Vec<u8>,
-    ophone: Vec<u8>,
-    fl: Vec<u8>,
-    hl: Vec<u8>,
-    numi: Vec<u8>,
-    lishs: Vec<Vec<u8>>,
-    lis: Vec<Vec<u8>>,
-    nums: Vec<u8>,
-    lsshs: Vec<Vec<u8>>,
-    lss: Vec<Vec<u8>>,
-    numx: Vec<u8>,
-    numt: Vec<u8>,
-    ltshs: Vec<Vec<u8>>,
-    lts: Vec<Vec<u8>>,
-    numdes: Vec<u8>,
-    ldshs: Vec<Vec<u8>>,
-    lds: Vec<Vec<u8>>,
-    numres: Vec<u8>,
-    lreshs: Vec<Vec<u8>>,
-    lres: Vec<Vec<u8>>,
-    udhdl: Vec<u8>,
-    udhofl: Vec<u8>,
-    udhd: Vec<u8>,
-    xhdl: Vec<u8>,
-    xhdlofl: Vec<u8>,
-    xhd: Vec<u8>,
+    fhdr: Field,
+    fver: Field,
+    clevel: Field,
+    stype: Field,
+    ostaid: Field,
+    /*
+    fdt: Field,
+    ftitle: Field,
+    fsclas: Field,
+    fsclsy: Field,
+    fscode: Field,
+    fsctlh: Field,
+    fsrel: Field,
+    fsdctp: Field,
+    fsdcdt: Field,
+    fsdcxm: Field,
+    fsdg: Field,
+    fsdgdt: Field,
+    fscltx: Field,
+    fscatp: Field,
+    fscaut: Field,
+    fscrsn: Field,
+    fssrdt: Field,
+    fsctln: Field,
+    fscop: Field,
+    fscpys: Field,
+    encryp: Field,
+    fbkgc: Field,
+    oname: Field,
+    ophone: Field,
+    fl: Field,
+    hl: Field,
+    numi: Field,
+    lishs: Field,
+    lis: Field,
+    nums: Field,
+    lsshs: Field,
+    lss: Field,
+    numx: Field,
+    numt: Field,
+    ltshs: Field,
+    lts: Field,
+    numdes: Field,
+    ldshs: Field,
+    lds: Field,
+    numres: Field,
+    lreshs: Field,
+    lres: Field,
+    udhdl: Field,
+    udhofl: Field,
+    udhd: Field,
+    xhdl: Field,
+    xhdlofl: Field,
+    xhd: Field,
+    */
 }
 
 impl FileHeader {
@@ -259,11 +305,12 @@ impl FileHeader {
         file.read(&mut xhd)?;
 
         Ok(FileHeader {
-            fhdr,
-            fver,
-            clevel,
-            stype,
-            ostaid,
+            fhdr: Field::from_single("File Profile Name", fhdr),
+            fver: Field::from_single("File Version", fver),
+            clevel: Field::from_single("Complexity level", clevel),
+            stype: Field::from_single("Standard Type", stype),
+            ostaid: Field::from_single("Originating Station Identifier", ostaid),
+            /*
             fdt,
             ftitle,
             fsclas,
@@ -312,24 +359,17 @@ impl FileHeader {
             xhdl,
             xhdlofl,
             xhd,
+            */
         })
     }
 
     fn pretty_print(&self) -> String {
         let mut pretty = String::new();
-        pretty.push_str(&make_label("File Profile Name", &self.fhdr));
-        pretty.push_str(&make_label("File Version", &self.fver));
-        pretty.push_str(&make_label("Complexity Level", &self.clevel));
-        pretty.push_str(&make_label("Standard Type", &self.stype));
-        pretty.push_str(&make_label("Originating Station Identifier", &self.ostaid));
-        pretty.push_str(&make_label("File Date and Time", &self.fdt));
-        pretty.push_str(&make_label("File Title", &self.ftitle));
-        pretty.push_str(&make_label("File Security Classification", &self.fsclas));
-        pretty.push_str(&make_label(
-            "File Security Classification System",
-            &self.fsclsy,
-        ));
-        pretty.push_str(&make_label("File Codewords", &self.fscode));
+        let reflected_self: &dyn Struct = self;
+        reflected_self
+            .iter_fields()
+            .map(|field| field.downcast_ref::<Field>().unwrap())
+            .for_each(|field| pretty.push_str(&format!("    {}\n", field)));
         pretty.pop();
         pretty
     }
@@ -339,10 +379,6 @@ impl Display for FileHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.pretty_print())
     }
-}
-
-fn make_label(description: &str, value: &Vec<u8>) -> String {
-    format!("    {}: {}\n", description, parse_string(value).unwrap())
 }
 
 fn parse_string(vec: &Vec<u8>) -> Result<String, Box<dyn std::error::Error>> {
