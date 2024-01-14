@@ -3,9 +3,7 @@ use std::fmt::Display;
 use std::vec;
 use std::{fs::File, io::Read};
 
-use bevy_reflect::Reflect;
-
-use bevy_reflect::Struct;
+use bevy_reflect::{Reflect, Struct};
 
 #[derive(Debug, Reflect)]
 enum FieldValue {
@@ -41,11 +39,16 @@ impl Display for Field {
             FieldValue::Single(value) => {
                 write!(f, "{}: {}", self.name, parse_string(&value).unwrap())
             }
-            FieldValue::Multiple(_) => todo!(),
+            FieldValue::Multiple(values) => {
+                for value in values {
+                    let s = parse_string(&value).unwrap();
+                    write!(f, "    {}: {}", self.name, s).unwrap();
+                }
+                Ok(())
+            }
         }
     }
 }
-
 #[derive(Debug, Reflect)]
 pub struct FileHeader {
     fhdr: Field,
@@ -53,7 +56,6 @@ pub struct FileHeader {
     clevel: Field,
     stype: Field,
     ostaid: Field,
-    /*
     fdt: Field,
     ftitle: Field,
     fsclas: Field,
@@ -102,7 +104,6 @@ pub struct FileHeader {
     xhdl: Field,
     xhdlofl: Field,
     xhd: Field,
-    */
 }
 
 impl FileHeader {
@@ -310,56 +311,54 @@ impl FileHeader {
             clevel: Field::from_single("Complexity level", clevel),
             stype: Field::from_single("Standard Type", stype),
             ostaid: Field::from_single("Originating Station Identifier", ostaid),
-            /*
-            fdt,
-            ftitle,
-            fsclas,
-            fsclsy,
-            fscode,
-            fsctlh,
-            fsrel,
-            fsdctp,
-            fsdcdt,
-            fsdcxm,
-            fsdg,
-            fsdgdt,
-            fscltx,
-            fscatp,
-            fscaut,
-            fscrsn,
-            fssrdt,
-            fsctln,
-            fscop,
-            fscpys,
-            encryp,
-            fbkgc,
-            oname,
-            ophone,
-            fl,
-            hl,
-            numi,
-            lishs,
-            lis,
-            nums,
-            lsshs,
-            lss,
-            numx,
-            numt,
-            ltshs,
-            lts,
-            numdes,
-            ldshs,
-            lds,
-            numres,
-            lreshs,
-            lres,
-            udhdl,
-            udhofl,
-            udhd,
-            xhdl,
-            xhdlofl,
-            xhd,
-            */
+            fdt: Field::from_single("File Date and Time", fdt),
+            ftitle: Field::from_single("File Title", ftitle),
+            fsclas: Field::from_single("File Security Classification", fsclas),
+            fsclsy: Field::from_single("File Security Classification System", fsclsy),
+            fscode: Field::from_single("File Codewords", fscode),
+            fsctlh: Field::from_single("File Control and Handling", fsctlh),
+            fsrel: Field::from_single("File Releasing Instructions", fsrel),
+            fsdctp: Field::from_single("File Declassification Type", fsdctp),
+            fsdcdt: Field::from_single("File Declassification Date", fsdcdt),
+            fsdcxm: Field::from_single("File Declassifcation Exemption", fsdcxm),
+            fsdg: Field::from_single("File Downgrade", fsdg),
+            fsdgdt: Field::from_single("File Downgrade Date", fsdgdt),
+            fscltx: Field::from_single("File Classifcation Text", fscltx),
+            fscatp: Field::from_single("File Classification Authority Type", fscatp),
+            fscaut: Field::from_single("File Classification Authority", fscaut),
+            fscrsn: Field::from_single("File Classification Reason", fscrsn),
+            fssrdt: Field::from_single("File Security Source Date", fssrdt),
+            fsctln: Field::from_single("File Security Control Number", fsctln),
+            fscop: Field::from_single("File Copy Number", fscop),
+            fscpys: Field::from_single("File Number of Copies", fscpys),
+            encryp: Field::from_single("Encryption", encryp),
+            fbkgc: Field::from_single("File Background Color", fbkgc),
+            oname: Field::from_single("Originator's Name", oname),
+            ophone: Field::from_single("Originator's Phone Number", ophone),
+            fl: Field::from_single("File Length", fl),
+            hl: Field::from_single("NSIF File Header Length", hl),
+            numi: Field::from_single("Number of Image Segments", numi),
+            lishs: Field::from_multiple("Length of Image Subheader", lishs),
+            lis: Field::from_multiple("Length of Image Segment", lis),
+            nums: Field::from_single("Number of Graphic Segments", nums),
+            lsshs: Field::from_multiple("Length of Graphic Subheader", lsshs),
+            lss: Field::from_multiple("Length of Graphic Segment", lss),
+            numx: Field::from_single("Reserved for Future Use", numx),
+            numt: Field::from_single("Number of Text Segments", numt),
+            ltshs: Field::from_multiple("Length of Text Subheader", ltshs),
+            lts: Field::from_multiple("Length of Text Segment", lts),
+            numdes: Field::from_single("Number of Data Extension Segments", numdes),
+            ldshs: Field::from_multiple("Length of Data Extension Segment Subheader", ldshs),
+            lds: Field::from_multiple("Length of Data Extension Segment", lds),
+            numres: Field::from_single("Number of Reserved Extension Segments", numres),
+            lreshs: Field::from_multiple("Length of Reserved Extension Segment Subheader", lreshs),
+            lres: Field::from_multiple("Length of Reserved Extension Segment", lres),
+            udhdl: Field::from_single("User-Defined Header Data Length", udhdl),
+            udhofl: Field::from_single("User-Defined Header Overflow", udhofl),
+            udhd: Field::from_single("User-Defined Header Data", udhd),
+            xhdl: Field::from_single("Extended Header Data Length", xhdl),
+            xhdlofl: Field::from_single("Extended Header Data Overflow", xhdlofl),
+            xhd: Field::from_single("Extended Header Data", xhd),
         })
     }
 
@@ -369,7 +368,12 @@ impl FileHeader {
         reflected_self
             .iter_fields()
             .map(|field| field.downcast_ref::<Field>().unwrap())
-            .for_each(|field| pretty.push_str(&format!("    {}\n", field)));
+            .for_each(|field| {
+                let line = &format!("{}", field);
+                if !line.trim().is_empty() {
+                    pretty.push_str(&format!("    {}\n", line));
+                }
+            });
         pretty.pop();
         pretty
     }

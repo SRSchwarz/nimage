@@ -8,7 +8,9 @@ fn main() {
     if let Some(path) = args.get(1) {
         match File::open(path) {
             Ok(file) => match NSIF::parse(&file) {
-                Ok(nsif) => println!("{}", nsif),
+                Ok(nsif) => {
+                    println!("{}", nsif);
+                }
                 Err(_) => {
                     eprintln!("There were problems parsing the given nsif file");
                     process::exit(1)
