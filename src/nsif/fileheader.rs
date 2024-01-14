@@ -1,54 +1,10 @@
+use crate::nsif::field::Field;
+use bevy_reflect::{Reflect, Struct};
 use std::cmp::max;
 use std::fmt::Display;
 use std::vec;
 use std::{fs::File, io::Read};
 
-use bevy_reflect::{Reflect, Struct};
-
-#[derive(Debug, Reflect)]
-enum FieldValue {
-    Single(Vec<u8>),
-    Multiple(Vec<Vec<u8>>),
-}
-
-#[derive(Debug, Reflect)]
-pub struct Field {
-    name: String,
-    value: FieldValue,
-}
-
-impl Field {
-    fn from_single(name: &str, vec: Vec<u8>) -> Field {
-        Field {
-            name: name.to_owned(),
-            value: FieldValue::Single(vec),
-        }
-    }
-
-    fn from_multiple(name: &str, vec: Vec<Vec<u8>>) -> Field {
-        Field {
-            name: name.to_owned(),
-            value: FieldValue::Multiple(vec),
-        }
-    }
-}
-
-impl Display for Field {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self.value {
-            FieldValue::Single(value) => {
-                write!(f, "{}: {}", self.name, parse_string(&value).unwrap())
-            }
-            FieldValue::Multiple(values) => {
-                for value in values {
-                    let s = parse_string(&value).unwrap();
-                    write!(f, "    {}: {}", self.name, s).unwrap();
-                }
-                Ok(())
-            }
-        }
-    }
-}
 #[derive(Debug, Reflect)]
 pub struct FileHeader {
     fhdr: Field,
@@ -384,18 +340,3 @@ impl Display for FileHeader {
         write!(f, "{}", self.pretty_print())
     }
 }
-
-fn parse_string(vec: &Vec<u8>) -> Result<String, Box<dyn std::error::Error>> {
-    String::from_utf8(vec.clone()).map_err(Into::into)
-}
-
-/*
-fn parse_number(vec: &Vec<u8>) -> Result<i32, Box<dyn std::error::Error>> {
-    let s = parse_string(vec)?.trim_start_matches('0').to_owned();
-    if s.is_empty() {
-        Ok(0)
-    } else {
-        s.parse::<i32>().map_err(Into::into)
-    }
-}
-*/
