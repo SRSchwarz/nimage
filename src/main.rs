@@ -1,11 +1,21 @@
 use nsif::NSIF;
-use std::{env, fs::File, process};
+use std::{
+    env::{self},
+    fs::File,
+    process,
+};
 
 mod nsif;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    if let Some(path) = args.get(1) {
+    if let Some(command) = args.get(1) {
+        if command != "info" {
+            eprintln!("Only the 'info' command is supported at this time");
+            process::exit(1)
+        }
+    }
+    if let Some(path) = args.get(2) {
         match File::open(path) {
             Ok(file) => match NSIF::parse(&file) {
                 Ok(nsif) => {
@@ -22,7 +32,7 @@ fn main() {
             }
         }
     } else {
-        eprintln!("No path was given");
+        eprintln!("No path or command was given");
         process::exit(1)
     }
 }
