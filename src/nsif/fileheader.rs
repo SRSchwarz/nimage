@@ -38,7 +38,7 @@ pub struct FileHeader {
     ophone: Field,
     fl: Field,
     hl: Field,
-    numi: Field,
+    pub numi: Field,
     lishs: Field,
     lis: Field,
     nums: Field,

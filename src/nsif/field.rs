@@ -3,15 +3,15 @@ use bevy_reflect::Reflect;
 use std::fmt::Display;
 
 #[derive(Debug, Reflect)]
-enum FieldValue {
+pub enum FieldValue {
     Single(Vec<u8>),
     Multiple(Vec<Vec<u8>>),
 }
 
 #[derive(Debug, Reflect)]
 pub struct Field {
-    name: String,
-    value: FieldValue,
+    pub name: String,
+    pub value: FieldValue,
 }
 
 impl Field {
