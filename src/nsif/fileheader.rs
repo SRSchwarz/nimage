@@ -1,9 +1,11 @@
 use crate::nsif::field::Field;
-use bevy_reflect::{Reflect, Struct};
+use bevy_reflect::Reflect;
 use std::cmp::max;
 use std::fmt::Display;
 use std::vec;
 use std::{fs::File, io::Read};
+
+use super::PrettyPrint;
 
 #[derive(Debug, Reflect)]
 pub struct FileHeader {
@@ -317,23 +319,8 @@ impl FileHeader {
             xhd: Field::from_single("Extended Header Data", xhd),
         })
     }
-
-    fn pretty_print(&self) -> String {
-        let mut pretty = String::new();
-        let reflected_self: &dyn Struct = self;
-        reflected_self
-            .iter_fields()
-            .map(|field| field.downcast_ref::<Field>().unwrap())
-            .for_each(|field| {
-                let line = &format!("{}", field);
-                if !line.trim().is_empty() {
-                    pretty.push_str(&format!("    {}\n", line));
-                }
-            });
-        pretty.pop();
-        pretty
-    }
 }
+impl PrettyPrint for FileHeader {}
 
 impl Display for FileHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

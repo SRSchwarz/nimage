@@ -4,6 +4,8 @@ pub mod field;
 pub mod fileheader;
 pub mod imagesegment;
 
+use bevy_reflect::Struct;
+use field::Field;
 use field::FieldValue;
 use fileheader::FileHeader;
 use imagesegment::ImageSegment;
@@ -21,6 +23,27 @@ pub struct NSIF {
     */
 }
 
+pub trait PrettyPrint {
+    fn pretty_print(&self) -> String
+    where
+        Self: Struct,
+        Self: Sized,
+    {
+        let mut pretty = String::new();
+        let reflected_self: &dyn Struct = self;
+        reflected_self
+            .iter_fields()
+            .map(|field| field.downcast_ref::<Field>().unwrap())
+            .for_each(|field| {
+                let line = &format!("{}", field);
+                if !line.trim().is_empty() {
+                    pretty.push_str(&format!("    {}\n", line));
+                }
+            });
+        pretty.pop();
+        pretty
+    }
+}
 /*
 #[derive(Debug)]
 struct GraphicSegment {}

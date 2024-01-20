@@ -1,21 +1,20 @@
 use crate::nsif::field::Field;
 use bevy_reflect::{Reflect, Struct};
-use std::fmt::Display;
+use std::fmt::{write, Display};
 use std::vec;
 use std::{fs::File, io::Read};
+
+use super::PrettyPrint;
 
 #[derive(Debug, Reflect)]
 pub struct ImageSegment {
     sub_header: ImageSubheader,
-    data: Vec<u8>,
 }
 impl ImageSegment {
     pub fn parse(mut file: &File) -> Result<ImageSegment, Box<dyn std::error::Error>> {
         let image_subheader = ImageSubheader::parse(file)?;
-        let data = Vec::new(); // TODO
         Ok(ImageSegment {
             sub_header: image_subheader,
-            data,
         })
     }
 }
@@ -165,8 +164,10 @@ impl ImageSubheader {
     }
 }
 
+impl PrettyPrint for ImageSubheader {}
+
 impl Display for ImageSegment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        write!(f, "{}", self.sub_header.pretty_print())
     }
 }
