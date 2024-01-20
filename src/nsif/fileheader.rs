@@ -2,10 +2,10 @@ use crate::nsif::field::Field;
 use bevy_reflect::Reflect;
 use std::cmp::max;
 use std::fmt::Display;
-use std::vec;
 use std::{fs::File, io::Read};
+use std::{usize, vec};
 
-use super::PrettyPrint;
+use super::{parse_number, PrettyPrint};
 
 #[derive(Debug, Reflect)]
 pub struct FileHeader {
@@ -153,10 +153,7 @@ impl FileHeader {
         file.read(&mut hl)?;
 
         file.read(&mut numi)?;
-        let number_of_image_segments: i32 = String::from_utf8(numi.clone())?
-            .trim_start_matches('0')
-            .parse()
-            .unwrap_or(0);
+        let number_of_image_segments = parse_number(&numi).unwrap_or(0);
 
         for _ in 0..number_of_image_segments {
             let mut lish = vec![0; 6];
@@ -168,10 +165,7 @@ impl FileHeader {
         }
 
         file.read(&mut nums)?;
-        let number_of_graphic_segments: i32 = String::from_utf8(nums.clone())?
-            .trim_start_matches('0')
-            .parse()
-            .unwrap_or(0);
+        let number_of_graphic_segments = parse_number(&nums).unwrap_or(0);
 
         for _ in 0..number_of_graphic_segments {
             let mut lssh = vec![0; 4];
@@ -185,10 +179,7 @@ impl FileHeader {
         file.read(&mut numx)?;
 
         file.read(&mut numt)?;
-        let number_of_text_segments: i32 = String::from_utf8(numt.clone())?
-            .trim_start_matches('0')
-            .parse()
-            .unwrap_or(0);
+        let number_of_text_segments = parse_number(&numt).unwrap_or(0);
 
         for _ in 0..number_of_text_segments {
             let mut ltsh = vec![0; 4];
@@ -200,10 +191,7 @@ impl FileHeader {
         }
 
         file.read(&mut numdes)?;
-        let number_of_data_extension_segments: i32 = String::from_utf8(numdes.clone())?
-            .trim_start_matches('0')
-            .parse()
-            .unwrap_or(0);
+        let number_of_data_extension_segments = parse_number(&numdes).unwrap_or(0);
 
         for _ in 0..number_of_data_extension_segments {
             let mut ldsh = vec![0; 4];
@@ -215,10 +203,7 @@ impl FileHeader {
         }
 
         file.read(&mut numres)?;
-        let number_of_reserved_extension_segments: i32 = String::from_utf8(numres.clone())?
-            .trim_start_matches('0')
-            .parse()
-            .unwrap_or(0);
+        let number_of_reserved_extension_segments = parse_number(&numres).unwrap_or(0);
 
         for _ in 0..number_of_reserved_extension_segments {
             let mut lresh = vec![0; 4];
@@ -230,37 +215,23 @@ impl FileHeader {
         }
 
         file.read(&mut udhdl)?;
-        let udhd_length: usize = max(
-            String::from_utf8(udhdl.clone())?
-                .trim_matches('0')
-                .parse()
-                .unwrap_or(3)
-                - 3,
-            0,
-        );
+        let udhd_length = max(parse_number(&udhdl).unwrap_or(3) - 3, 0);
 
         if udhd_length != 0 {
             file.read(&mut udhofl)?;
         }
 
-        let mut udhd = vec![0; udhd_length];
+        let mut udhd = vec![0; udhd_length as usize];
         file.read(&mut udhd)?;
 
         file.read(&mut xhdl)?;
-        let xhd_length: usize = max(
-            String::from_utf8(xhdl.clone())?
-                .trim_matches('0')
-                .parse()
-                .unwrap_or(3)
-                - 3,
-            0,
-        );
+        let xhd_length = max(parse_number(&xhdl).unwrap_or(3) - 3, 0);
 
         if xhd_length != 0 {
             file.read(&mut xhdlofl)?;
         }
 
-        let mut xhd = vec![0; xhd_length];
+        let mut xhd = vec![0; xhd_length as usize];
         file.read(&mut xhd)?;
 
         Ok(FileHeader {
