@@ -1,10 +1,12 @@
 use crate::nsif::field::Field;
-use bevy_reflect::{Reflect, Struct};
-use std::fmt::{write, Display};
+use bevy_reflect::{List, Reflect};
+use core::panic;
+use std::cmp::max;
+use std::fmt::Display;
 use std::vec;
 use std::{fs::File, io::Read};
 
-use super::PrettyPrint;
+use super::{parse_number, PrettyPrint};
 
 #[derive(Debug, Reflect)]
 pub struct ImageSegment {
@@ -54,8 +56,36 @@ struct ImageSubheader {
     icords: Field,
     igeolo: Field,
     nicom: Field,
+    icoms: Field,
+    ic: Field,
+    comrat: Field,
+    nbands: Field,
+    xbands: Field,
+    irepbands: Field,
+    isubcats: Field,
+    ifcs: Field,
+    imflts: Field,
+    nlutss: Field,
+    neluts: Field,
+    lutdss: Field,
+    isync: Field,
+    imode: Field,
+    nbpr: Field,
+    nbpc: Field,
+    nppbh: Field,
+    nppbv: Field,
+    nbpp: Field,
+    idlvl: Field,
+    ialvl: Field,
+    iloc: Field,
+    imag: Field,
+    udidl: Field,
+    udofl: Field,
+    udid: Field,
+    ixshdl: Field,
+    ixsofl: Field,
+    ixshd: Field,
 }
-
 impl ImageSubheader {
     fn parse(mut file: &File) -> Result<ImageSubheader, Box<dyn std::error::Error>> {
         let mut im = vec![0; 2];
@@ -91,6 +121,35 @@ impl ImageSubheader {
         let mut icords = vec![0; 1];
         let mut igeolo = vec![0; 60];
         let mut nicom = vec![0; 1];
+        let mut icoms = Vec::new();
+        let mut ic = vec![0; 2];
+        let mut comrat = vec![0; 4];
+        let mut nbands = vec![0; 1];
+        let mut xbands = vec![0; 5];
+        let mut irepbands = Vec::new();
+        let mut isubcats = Vec::new();
+        let mut ifcs = Vec::new();
+        let mut imflts = Vec::new();
+        let mut nlutss = Vec::new();
+        let mut neluts = Vec::new();
+        let mut lutdss = Vec::new();
+        let mut isync = vec![0; 1];
+        let mut imode = vec![0; 1];
+        let mut nbpr = vec![0; 4];
+        let mut nbpc = vec![0; 4];
+        let mut nppbh = vec![0; 4];
+        let mut nppbv = vec![0; 4];
+        let mut nbpp = vec![0; 2];
+        let mut idlvl = vec![0; 3];
+        let mut ialvl = vec![0; 3];
+        let mut iloc = vec![0; 10];
+        let mut imag = vec![0; 4];
+        let mut udidl = vec![0; 5];
+        let mut udofl = vec![0; 3];
+        // udid is dynamically sized
+        let mut ixshdl = vec![0; 5];
+        let mut ixsofl = vec![0; 3];
+        // ixshd is dynamically sized
 
         file.read(&mut im)?;
         file.read(&mut iid1)?;
@@ -124,7 +183,94 @@ impl ImageSubheader {
         file.read(&mut pjust)?;
         file.read(&mut icords)?;
         file.read(&mut igeolo)?;
+
         file.read(&mut nicom)?;
+        let number_of_image_comments = parse_number(&nicom).unwrap_or(0);
+        for _ in 0..number_of_image_comments {
+            let mut icom = vec![0; 80];
+            file.read(&mut icom)?;
+            icoms.push(icom);
+        }
+
+        file.read(&mut ic)?;
+        let ic_value = String::from_utf8(ic.clone())?;
+        if ic_value != "NC" && ic_value != "NM" {
+            file.read(&mut comrat)?;
+        }
+
+        file.read(&mut nbands)?;
+        let nbands_value = parse_number(&nbands).unwrap_or(0);
+        if nbands_value == 0 {
+            file.read(&mut xbands)?;
+        }
+        let number_of_bands = if nbands_value > 0 {
+            nbands_value
+        } else {
+            parse_number(&xbands).unwrap_or(0)
+        };
+
+        for _ in 0..number_of_bands {
+            let mut irepband = vec![0; 2];
+            let mut isubcat = vec![0; 6];
+            let mut ifc = vec![0; 1];
+            let mut imflt = vec![0; 3];
+            let mut nluts = vec![0; 1];
+            let mut nelut = vec![0; 5];
+            let mut lutds = Vec::new();
+
+            file.read(&mut irepband)?;
+            file.read(&mut isubcat)?;
+            file.read(&mut ifc)?;
+            file.read(&mut imflt)?;
+            file.read(&mut nluts)?;
+            let number_of_lut_entries = parse_number(&nluts).unwrap_or(0);
+            if number_of_lut_entries != 0 {
+                file.read(&mut nelut)?;
+            }
+            let lut_entry_size = parse_number(&nelut).unwrap_or(0);
+            for _ in 0..number_of_lut_entries {
+                let mut lutd = vec![0; lut_entry_size as usize];
+                file.read(&mut lutd)?;
+                lutds.push(lutd);
+            }
+
+            irepbands.push(irepband);
+            isubcats.push(isubcat);
+            ifcs.push(ifc);
+            imflts.push(imflt);
+            nlutss.push(nluts);
+            neluts.push(nelut);
+            lutdss.push(lutds);
+        }
+
+        file.read(&mut isync)?;
+        file.read(&mut imode)?;
+        file.read(&mut nbpr)?;
+        file.read(&mut nbpc)?;
+        file.read(&mut nppbh)?;
+        file.read(&mut nppbv)?;
+        file.read(&mut nbpp)?;
+        file.read(&mut idlvl)?;
+        file.read(&mut ialvl)?;
+        file.read(&mut iloc)?;
+        file.read(&mut imag)?;
+        file.read(&mut udidl)?;
+        let udid_length = max(parse_number(&udidl).unwrap_or(3) - 3, 0);
+        let mut udid = vec![0; udid_length as usize];
+        if udid_length != 0 {
+            file.read(&mut udofl)?;
+            file.read(&mut udid)?;
+        }
+        file.read(&mut ixshdl)?;
+        let ixshdl_length = parse_number(&ixshdl).unwrap_or(0);
+        if ixshdl_length != 0 {
+            file.read(&mut ixsofl)?;
+        }
+        let ixsofl_length = max(parse_number(&ixsofl).unwrap_or(3) - 3, 0);
+        let mut ixshd = vec![0; ixsofl_length as usize];
+        if ixsofl_length != 0 {
+            file.read(&mut ixshd)?;
+        }
 
         Ok(ImageSubheader {
             im: Field::from_single("File Part Type", im),
@@ -160,6 +306,35 @@ impl ImageSubheader {
             icords: Field::from_single("Image Coordinate Representation", icords),
             igeolo: Field::from_single("Image Geographic Location", igeolo),
             nicom: Field::from_single("Number of Image Comments", nicom),
+            icoms: Field::from_multiple("Image comments", icoms),
+            ic: Field::from_single("Image compression", ic),
+            comrat: Field::from_single("Compression Rate Code", comrat),
+            nbands: Field::from_single("Number of Bands", nbands),
+            xbands: Field::from_single("Number of Multispectral Bands", xbands),
+            irepbands: Field::from_multiple("Band Representations", irepbands),
+            isubcats: Field::from_multiple("Band Subcategories", isubcats),
+            ifcs: Field::from_multiple("Band Image Filter Condition", ifcs),
+            imflts: Field::from_multiple("Band Standard Image Code", imflts),
+            nlutss: Field::from_multiple("Number of LUTs", nlutss),
+            neluts: Field::from_multiple("Number of LUT entries", neluts),
+            lutdss: Field::from_nested("LUTs", lutdss),
+            isync: Field::from_single("Image Sync Code", isync),
+            imode: Field::from_single("Image Mode", imode),
+            nbpr: Field::from_single("Number of Blocks per Row", nbpr),
+            nbpc: Field::from_single("Number of Blocks per Columns", nbpc),
+            nppbh: Field::from_single("Number of Pixels per Block Horizontal", nppbh),
+            nppbv: Field::from_single("Number of Pixels per Block Vertical", nppbv),
+            nbpp: Field::from_single("Number of Bits per Pixel per Band", nbpp),
+            idlvl: Field::from_single("Image Display Level", idlvl),
+            ialvl: Field::from_single("Image Attachment Level", ialvl),
+            iloc: Field::from_single("Image Location", iloc),
+            imag: Field::from_single("Image Magnification", imag),
+            udidl: Field::from_single("User-Defined Image Data Length", udidl),
+            udofl: Field::from_single("User-Defined Overflow", udofl),
+            udid: Field::from_single("User-Defined Image Data", udid),
+            ixshdl: Field::from_single("Image Extended Subheader Length", ixshdl),
+            ixsofl: Field::from_single("Image Extended Subheader Overflow", ixsofl),
+            ixshd: Field::from_single("Image Extended Subheader Data", ixshd),
         })
     }
 }

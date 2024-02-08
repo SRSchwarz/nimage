@@ -6,6 +6,7 @@ use std::fmt::Display;
 pub enum FieldValue {
     Single(Vec<u8>),
     Multiple(Vec<Vec<u8>>),
+    Nested(Vec<Vec<Vec<u8>>>),
 }
 
 #[derive(Debug, Reflect)]
@@ -28,6 +29,13 @@ impl Field {
             value: FieldValue::Multiple(vec),
         }
     }
+
+    pub fn from_nested(name: &str, vec: Vec<Vec<Vec<u8>>>) -> Field {
+        Field {
+            name: name.to_owned(),
+            value: FieldValue::Nested(vec),
+        }
+    }
 }
 
 impl Display for Field {
@@ -40,6 +48,17 @@ impl Display for Field {
                 for value in values {
                     let s = parse_string(&value).unwrap();
                     write!(f, "    {}: {}", self.name, s).unwrap();
+                }
+                Ok(())
+            }
+            FieldValue::Nested(outer_values) => {
+                for outer_value in outer_values {
+                    let mut outer_s = String::new();
+                    for inner_value in outer_value {
+                        let s = parse_string(&inner_value).unwrap();
+                        outer_s.push_str(&s); // TODO indent?
+                    }
+                    write!(f, "    {}: {}", self.name, outer_s).unwrap();
                 }
                 Ok(())
             }
