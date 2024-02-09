@@ -11,12 +11,20 @@ use super::{parse_number, PrettyPrint};
 #[derive(Debug, Reflect)]
 pub struct ImageSegment {
     sub_header: ImageSubheader,
+    data: Vec<u8>,
 }
 impl ImageSegment {
-    pub fn parse(mut file: &File) -> Result<ImageSegment, Box<dyn std::error::Error>> {
+    pub fn parse(
+        mut file: &File,
+        subheader_length: i32,
+        segment_length: i32,
+    ) -> Result<ImageSegment, Box<dyn std::error::Error>> {
         let image_subheader = ImageSubheader::parse(file)?;
+        let mut data = vec![0; segment_length as usize];
+        file.read(&mut data)?;
         Ok(ImageSegment {
             sub_header: image_subheader,
+            data,
         })
     }
 }

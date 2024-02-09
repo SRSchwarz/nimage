@@ -65,10 +65,20 @@ impl NSIF {
         let file_header = FileHeader::parse(file)?;
         let mut image_segments = Vec::new();
 
-        if let FieldValue::Single(value) = &file_header.numi.value {
-            let number_of_image_segments = parse_number(&value)?;
-            for _ in 0..number_of_image_segments {
-                image_segments.push(ImageSegment::parse(file)?);
+        if let (
+            FieldValue::Multiple(image_segment_subheader_lengths),
+            FieldValue::Multiple(image_segment_lengths),
+        ) = (&file_header.lishs.value, &file_header.lis.value)
+        {
+            for (subheader_length, segment_length) in image_segment_subheader_lengths
+                .iter()
+                .zip(image_segment_lengths.iter())
+            {
+                image_segments.push(ImageSegment::parse(
+                    file,
+                    parse_number(subheader_length)?,
+                    parse_number(segment_length)?,
+                )?);
             }
         }
 
