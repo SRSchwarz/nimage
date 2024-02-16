@@ -54,7 +54,6 @@ impl eframe::App for NImageViewer {
                                             ),
                                             Default::default(),
                                         ));
-                                        println!("{}", image);
                                         self.nsif = Some(image);
                                         return;
                                     }
@@ -95,7 +94,15 @@ impl eframe::App for NImageViewer {
                     });
             });
             egui::TopBottomPanel::bottom("bottom-panel").show(ctx, |ui| {
-                ui.add(egui::Slider::new(&mut self.zoom, 0.0..=1.0))
+                if let Some(_) = &self.nsif {
+                    ui.with_layout(
+                        egui::Layout::left_to_right(egui::Align::Center).with_cross_justify(true),
+                        |ui| {
+                            ui.style_mut().spacing.slider_width = ui.available_width() - 45.0;
+                            ui.add(egui::Slider::new(&mut self.zoom, 0.1..=5.0));
+                        },
+                    );
+                }
             })
         });
     }
