@@ -1,22 +1,23 @@
 use crate::nsif::field::Field;
-use bevy_reflect::{List, Reflect};
+use bevy_reflect::Reflect;
 use core::panic;
 use std::cmp::max;
 use std::fmt::Display;
 use std::vec;
 use std::{fs::File, io::Read};
 
+use super::field::FieldValue;
 use super::{parse_number, PrettyPrint};
 
 #[derive(Debug, Reflect)]
 pub struct ImageSegment {
-    sub_header: ImageSubheader,
-    data: Vec<u8>,
+    pub sub_header: ImageSubheader,
+    pub data: Vec<u8>,
 }
 impl ImageSegment {
     pub fn parse(
         mut file: &File,
-        subheader_length: i32,
+        _subheader_length: i32,
         segment_length: i32,
     ) -> Result<ImageSegment, Box<dyn std::error::Error>> {
         let image_subheader = ImageSubheader::parse(file)?;
@@ -27,10 +28,22 @@ impl ImageSegment {
             data,
         })
     }
+
+    pub fn dimensions(&self) -> (i32, i32) {
+        if let (FieldValue::Single(height), FieldValue::Single(width)) =
+            (&self.sub_header.nrows.value, &self.sub_header.ncols.value)
+        {
+            return (
+                parse_number(&height).unwrap(),
+                parse_number(&width).unwrap(),
+            );
+        }
+        panic!()
+    }
 }
 
 #[derive(Debug, Reflect)]
-struct ImageSubheader {
+pub struct ImageSubheader {
     im: Field,
     iid1: Field,
     idatim: Field,

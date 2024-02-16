@@ -1,0 +1,102 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
+
+use std::fs::{self};
+
+use eframe::egui::{self, load::SizedTexture};
+use nimage::nsif::{field::FieldValue, parse_string, NSIF};
+
+fn main() -> Result<(), eframe::Error> {
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default(),
+        ..Default::default()
+    };
+    eframe::run_native(
+        "NImage Viewer",
+        options,
+        Box::new(|cc| {
+            egui_extras::install_image_loaders(&cc.egui_ctx);
+            Box::<NImageViewer>::default()
+        }),
+    )
+}
+
+struct NImageViewer {
+    zoom: f32,
+    nsif: Option<NSIF>,
+    texture: Option<egui::TextureHandle>,
+}
+impl Default for NImageViewer {
+    fn default() -> Self {
+        NImageViewer {
+            zoom: 1.0,
+            nsif: None,
+            texture: None,
+        }
+    }
+}
+impl eframe::App for NImageViewer {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::CentralPanel::default().show(ctx, |_| {
+            egui::TopBottomPanel::top("top-panel").show(ctx, |ui| {
+                egui::menu::bar(ui, |ui| {
+                    ui.menu_button("File", |ui| {
+                        if ui.button("Open").clicked() {
+                            if let Some(path) = rfd::FileDialog::new().pick_file() {
+                                if let Ok(file) = fs::File::open(path) {
+                                    if let Ok(image) = NSIF::parse(&file) {
+                                        let image_segment = image.image_segments.get(0).unwrap();
+                                        let (height, width) = image_segment.dimensions();
+                                        self.texture.get_or_insert(ctx.load_texture(
+                                            "image-segment",
+                                            egui::ColorImage::from_rgb(
+                                                [width as _, height as _],
+                                                &image_segment.data,
+                                            ),
+                                            Default::default(),
+                                        ));
+                                        println!("{}", image);
+                                        self.nsif = Some(image);
+                                        return;
+                                    }
+                                }
+                            }
+                            eprintln!("Failed to parse given file")
+                        }
+                    })
+                })
+            });
+            egui::SidePanel::left("details-panel").show(ctx, |ui| {
+                egui::ScrollArea::both().show(ui, |ui| {
+                    if let Some(image) = &self.nsif {
+                        for field in image.fields() {
+                            let value = match &field.value {
+                                FieldValue::Single(v) => parse_string(&v).unwrap(),
+                                FieldValue::Multiple(_) => String::from("TODO"),
+                                FieldValue::Nested(_) => String::from("TODO"),
+                            };
+
+                            ui.label(format!("{}: {}", &field.name, value));
+                        }
+                    }
+                })
+            });
+            egui::CentralPanel::default().show(ctx, |ui| {
+                egui::ScrollArea::both()
+                    .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible)
+                    .show(ui, |ui| {
+                        if let Some(_) = &self.nsif {
+                            ui.add(
+                                egui::Image::from_texture(SizedTexture::from_handle(
+                                    &self.texture.clone().unwrap(), // TODO need to clone?
+                                ))
+                                .fit_to_original_size(self.zoom),
+                            );
+                        }
+                    });
+            });
+            egui::TopBottomPanel::bottom("bottom-panel").show(ctx, |ui| {
+                ui.add(egui::Slider::new(&mut self.zoom, 0.0..=1.0))
+            })
+        });
+    }
+}

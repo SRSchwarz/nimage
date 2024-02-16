@@ -4,16 +4,17 @@ pub mod field;
 pub mod fileheader;
 pub mod imagesegment;
 
+use bevy_reflect::Reflect;
 use bevy_reflect::Struct;
 use field::Field;
 use field::FieldValue;
 use fileheader::FileHeader;
 use imagesegment::ImageSegment;
 
-#[derive(Debug)]
+#[derive(Debug, Reflect)]
 pub struct NSIF {
-    file_header: FileHeader,
-    image_segments: Vec<ImageSegment>,
+    pub file_header: FileHeader,
+    pub image_segments: Vec<ImageSegment>,
     /*
     graphic_segments: Vec<GraphicSegment>,
     reserved_segments: Vec<ReservedSegment>,
@@ -86,6 +87,26 @@ impl NSIF {
             file_header,
             image_segments,
         })
+    }
+
+    pub fn fields(&self) -> Vec<&Field> {
+        let mut fields = Vec::new();
+        let reflected_fileheader: &dyn Struct = &self.file_header;
+        fields.extend(
+            reflected_fileheader
+                .iter_fields()
+                .map(|field| field.downcast_ref::<Field>().unwrap()),
+        );
+        for image_segment in &self.image_segments {
+            let reflected_subheader: &dyn Struct = &image_segment.sub_header;
+            fields.extend(
+                reflected_subheader
+                    .iter_fields()
+                    .map(|field| field.downcast_ref::<Field>().unwrap()),
+            );
+        }
+
+        fields
     }
 }
 
