@@ -5,10 +5,7 @@ use std::{
 };
 
 use clap::{Args, Parser, Subcommand};
-
-use crate::nsif::NSIF;
-
-mod nsif;
+use nimage::nsif::NSIF;
 
 fn main() {
     let opts = Opts::parse();
