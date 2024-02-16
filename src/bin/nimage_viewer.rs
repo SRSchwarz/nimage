@@ -65,19 +65,26 @@ impl eframe::App for NImageViewer {
                 })
             });
             egui::SidePanel::left("details-panel").show(ctx, |ui| {
-                egui::ScrollArea::both().show(ui, |ui| {
-                    if let Some(image) = &self.nsif {
-                        for field in image.fields() {
-                            let value = match &field.value {
-                                FieldValue::Single(v) => parse_string(&v).unwrap(),
-                                FieldValue::Multiple(_) => String::from("TODO"),
-                                FieldValue::Nested(_) => String::from("TODO"),
-                            };
-
-                            ui.label(format!("{}: {}", &field.name, value));
+                egui::ScrollArea::both()
+                    .min_scrolled_width(500.0)
+                    .show(ui, |ui| {
+                        if let Some(image) = &self.nsif {
+                            egui::Grid::new("details-table")
+                                .striped(true)
+                                .show(ui, |ui| {
+                                    for field in image.fields() {
+                                        let value = match &field.value {
+                                            FieldValue::Single(v) => parse_string(&v).unwrap(),
+                                            FieldValue::Multiple(_) => String::from("TODO"),
+                                            FieldValue::Nested(_) => String::from("TODO"),
+                                        };
+                                        ui.label(&field.name);
+                                        ui.label(value);
+                                        ui.end_row();
+                                    }
+                                });
                         }
-                    }
-                })
+                    })
             });
             egui::CentralPanel::default().show(ctx, |ui| {
                 egui::ScrollArea::both()
