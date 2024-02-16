@@ -41,7 +41,10 @@ impl eframe::App for NImageViewer {
                 egui::menu::bar(ui, |ui| {
                     ui.menu_button("File", |ui| {
                         if ui.button("Open").clicked() {
-                            if let Some(path) = rfd::FileDialog::new().pick_file() {
+                            if let Some(path) = rfd::FileDialog::new()
+                                .add_filter("NSIF files", &vec!["nsif"])
+                                .pick_file()
+                            {
                                 if let Ok(file) = fs::File::open(path) {
                                     if let Ok(image) = NSIF::parse(&file) {
                                         let image_segment = image.image_segments.get(0).unwrap();
@@ -57,9 +60,9 @@ impl eframe::App for NImageViewer {
                                         self.nsif = Some(image);
                                         return;
                                     }
+                                    eprintln!("Failed to parse given file")
                                 }
                             }
-                            eprintln!("Failed to parse given file")
                         }
                     })
                 })
@@ -75,8 +78,27 @@ impl eframe::App for NImageViewer {
                                     for field in image.fields() {
                                         let value = match &field.value {
                                             FieldValue::Single(v) => parse_string(&v).unwrap(),
-                                            FieldValue::Multiple(_) => String::from("TODO"),
-                                            FieldValue::Nested(_) => String::from("TODO"),
+                                            FieldValue::Multiple(vs) => vs
+                                                .iter()
+                                                .map(|v| parse_string(&v).unwrap_or(String::new()))
+                                                .filter(|v| !v.trim().is_empty())
+                                                .collect::<Vec<String>>()
+                                                .join(","),
+                                            FieldValue::Nested(vss) => vss
+                                                .iter()
+                                                .map(|vs| {
+                                                    vs.iter()
+                                                        .map(|v| {
+                                                            parse_string(&v)
+                                                                .unwrap_or(String::new())
+                                                        })
+                                                        .filter(|v| !v.trim().is_empty())
+                                                        .collect::<Vec<String>>()
+                                                        .join(",")
+                                                })
+                                                .filter(|v| !v.trim().is_empty())
+                                                .collect::<Vec<String>>()
+                                                .join(";"),
                                         };
                                         ui.label(&field.name);
                                         ui.label(value);
