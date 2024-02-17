@@ -3,7 +3,7 @@
 use std::fs::{self};
 
 use eframe::egui::{self, load::SizedTexture};
-use nimage::nsif::{field::FieldValue, parse_string, NSIF};
+use nimage::nsif::{export::export_to_jpeg, field::FieldValue, parse_string, NSIF};
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
@@ -64,7 +64,20 @@ impl eframe::App for NImageViewer {
                                 }
                             }
                         }
-                    })
+                    });
+                    ui.menu_button("Export", |ui| {
+                        ui.add_enabled_ui(self.nsif.is_some(), |ui| {
+                            let button = ui.button("Export Image Segment");
+                            if button.clicked() {
+                                if let Some(path) = rfd::FileDialog::new().save_file() {
+                                    if let Some(image) = &self.nsif {
+                                        let image_segment = image.image_segments.get(0).unwrap();
+                                        export_to_jpeg(&image_segment, path).unwrap();
+                                    }
+                                }
+                            }
+                        })
+                    });
                 })
             });
             egui::SidePanel::left("details-panel").show(ctx, |ui| {

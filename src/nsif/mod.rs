@@ -1,5 +1,6 @@
 use std::{fmt::Display, fs::File};
 
+pub mod export;
 pub mod field;
 pub mod fileheader;
 pub mod imagesegment;
