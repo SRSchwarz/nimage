@@ -41,6 +41,7 @@ impl eframe::App for NImageViewer {
                 egui::menu::bar(ui, |ui| {
                     ui.menu_button("File", |ui| {
                         if ui.button("Open").clicked() {
+                            ui.close_menu();
                             if let Some(path) = rfd::FileDialog::new()
                                 .add_filter("NSIF files", &vec!["nsif"])
                                 .pick_file()
@@ -69,6 +70,7 @@ impl eframe::App for NImageViewer {
                         ui.add_enabled_ui(self.nsif.is_some(), |ui| {
                             let button = ui.button("Export Image Segment");
                             if button.clicked() {
+                                ui.close_menu();
                                 if let Some(path) = rfd::FileDialog::new().save_file() {
                                     if let Some(image) = &self.nsif {
                                         let image_segment = image.image_segments.get(0).unwrap();
