@@ -1,16 +1,15 @@
-use std::{fmt::Display, fs::File};
-
-pub mod export;
-pub mod field;
-pub mod fileheader;
-pub mod imagesegment;
-
 use bevy_reflect::Reflect;
 use bevy_reflect::Struct;
 use field::Field;
 use field::FieldValue;
 use fileheader::FileHeader;
 use imagesegment::ImageSegment;
+use std::{fmt::Display, fs::File};
+
+pub mod export;
+pub mod field;
+pub mod fileheader;
+pub mod imagesegment;
 
 #[derive(Debug, Reflect)]
 pub struct NSIF {
@@ -35,11 +34,13 @@ pub trait PrettyPrint {
         let reflected_self: &dyn Struct = self;
         reflected_self
             .iter_fields()
-            .map(|field| field.downcast_ref::<Field>().unwrap())
-            .for_each(|field| {
-                let line = &format!("{}", field);
-                if !line.trim().is_empty() {
-                    pretty.push_str(&format!("    {}\n", line));
+            .map(|f| f.downcast_ref::<Field>())
+            .for_each(|f| {
+                if let Some(field) = f {
+                    let line = &format!("{}", field);
+                    if !line.trim().is_empty() {
+                        pretty.push_str(&format!("    {}\n", line));
+                    }
                 }
             });
         pretty.pop();

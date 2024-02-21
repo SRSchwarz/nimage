@@ -1,3 +1,5 @@
+use super::field::FieldValue;
+use super::{parse_number, PrettyPrint};
 use crate::nsif::field::Field;
 use bevy_reflect::Reflect;
 use core::panic;
@@ -5,9 +7,6 @@ use std::cmp::max;
 use std::fmt::Display;
 use std::vec;
 use std::{fs::File, io::Read};
-
-use super::field::FieldValue;
-use super::{parse_number, PrettyPrint};
 
 #[derive(Debug, Reflect)]
 pub struct ImageSegment {

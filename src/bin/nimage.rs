@@ -1,11 +1,10 @@
+use clap::{Args, Parser, Subcommand};
+use nimage::nsif::{export::export_to_jpeg, NSIF};
 use std::{
     fs::File,
     path::PathBuf,
     process::{self},
 };
-
-use clap::{Args, Parser, Subcommand};
-use nimage::nsif::{export::export_to_jpeg, NSIF};
 
 fn main() {
     let opts = Opts::parse();

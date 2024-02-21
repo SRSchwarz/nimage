@@ -1,6 +1,5 @@
-use std::path::PathBuf;
-
 use super::imagesegment::ImageSegment;
+use std::path::PathBuf;
 
 use jpeg_encoder::{ColorType, Encoder};
 pub fn export_to_jpeg(

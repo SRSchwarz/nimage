@@ -1,9 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-use std::fs::{self};
-
 use eframe::egui::{self, load::SizedTexture};
 use nimage::nsif::{export::export_to_jpeg, field::FieldValue, parse_string, NSIF};
+use std::fs::{self};
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
