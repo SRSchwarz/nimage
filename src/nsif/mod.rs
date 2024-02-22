@@ -128,7 +128,7 @@ pub fn parse_string(vec: &Vec<u8>) -> Result<String, Box<dyn std::error::Error>>
     String::from_utf8(vec.clone()).map_err(Into::into)
 }
 
-fn parse_number(vec: &Vec<u8>) -> Result<i32, Box<dyn std::error::Error>> {
+pub fn parse_number(vec: &Vec<u8>) -> Result<i32, Box<dyn std::error::Error>> {
     let s = parse_string(vec)?.trim_start_matches('0').to_owned();
     if s.is_empty() {
         Ok(0)

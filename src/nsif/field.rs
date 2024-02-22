@@ -1,8 +1,9 @@
 use crate::nsif::parse_string;
 use bevy_reflect::Reflect;
+use enum_as_inner::EnumAsInner;
 use std::fmt::Display;
 
-#[derive(Debug, Reflect)]
+#[derive(Debug, Reflect, EnumAsInner)] // TODO distinguish by type?
 pub enum FieldValue {
     Single(Vec<u8>),
     Multiple(Vec<Vec<u8>>),
