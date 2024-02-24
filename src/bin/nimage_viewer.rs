@@ -66,14 +66,19 @@ impl eframe::App for NImageViewer {
                         }
                     });
                     ui.menu_button("Export", |ui| {
+                        // TODO disable button
                         ui.add_enabled_ui(self.nsif.is_some(), |ui| {
-                            let button = ui.button("Export Image Segment");
-                            if button.clicked() {
-                                ui.close_menu();
-                                if let Some(path) = rfd::FileDialog::new().save_file() {
-                                    if let Some(image) = &self.nsif {
-                                        let image_segment = image.image_segments.get(0).unwrap();
-                                        export_to_jpeg(&image_segment, path).unwrap();
+                            if let Some(image) = &self.nsif {
+                                for (i, &ref image_segment) in
+                                    &mut image.image_segments.iter().enumerate()
+                                {
+                                    let button =
+                                        ui.button(format!("Export Image Segment {}", i + 1));
+                                    if button.clicked() {
+                                        ui.close_menu();
+                                        if let Some(path) = rfd::FileDialog::new().save_file() {
+                                            export_to_jpeg(&image_segment, path).unwrap();
+                                        }
                                     }
                                 }
                             }
@@ -82,61 +87,65 @@ impl eframe::App for NImageViewer {
                 })
             });
             egui::SidePanel::left("details-panel").show(ctx, |ui| {
-                egui::ScrollArea::both()
-                    .min_scrolled_width(400.0)
-                    .show(ui, |ui| {
-                        if let Some(image) = &self.nsif {
-                            egui::Grid::new("details-table")
-                                .striped(true)
-                                .show(ui, |ui| {
-                                    for field in image.fields() {
-                                        let value = match &field.value {
-                                            Value::SingleAlphanumeric(v) => v.value.clone(),
-                                            Value::SingleNumeric(v) => v.value.clone(),
-                                            Value::MultipleAlphanumeric(vs) => vs
-                                                .iter()
-                                                .map(|v| v.value.clone())
-                                                .filter(|v| !v.trim().is_empty())
-                                                .collect::<Vec<String>>()
-                                                .join(","),
-                                            Value::MultipleNumeric(vs) => vs
-                                                .iter()
-                                                .map(|v| v.value.clone())
-                                                .filter(|v| !v.trim().is_empty())
-                                                .collect::<Vec<String>>()
-                                                .join(","),
-                                            Value::NestedAlphaNumeric(vss) => vss
-                                                .iter()
-                                                .map(|vs| {
-                                                    vs.iter()
-                                                        .map(|v| v.value.clone())
-                                                        .filter(|v| !v.trim().is_empty())
-                                                        .collect::<Vec<String>>()
-                                                        .join(",")
-                                                })
-                                                .filter(|v| !v.trim().is_empty())
-                                                .collect::<Vec<String>>()
-                                                .join(";"),
-                                            Value::NestedNumeric(vss) => vss
-                                                .iter()
-                                                .map(|vs| {
-                                                    vs.iter()
-                                                        .map(|v| v.value.clone())
-                                                        .filter(|v| !v.trim().is_empty())
-                                                        .collect::<Vec<String>>()
-                                                        .join(",")
-                                                })
-                                                .filter(|v| !v.trim().is_empty())
-                                                .collect::<Vec<String>>()
-                                                .join(";"),
-                                        };
-                                        ui.label(&field.name);
-                                        ui.label(value);
-                                        ui.end_row();
-                                    }
+                ui.set_width(450.0);
+                egui::ScrollArea::both().show(ui, |ui| {
+                    if let Some(image) = &self.nsif {
+                        egui::Grid::new("details-table").show(ui, |ui| {
+                            for (header, fields) in image.fields() {
+                                egui::CollapsingHeader::new(&header).show(ui, |ui| {
+                                    egui::Grid::new(&header).striped(true).show(ui, |ui| {
+                                        for field in fields {
+                                            let value = match &field.value {
+                                                Value::SingleAlphanumeric(v) => v.value.clone(),
+                                                Value::SingleNumeric(v) => v.value.clone(),
+                                                Value::MultipleAlphanumeric(vs) => vs
+                                                    .iter()
+                                                    .map(|v| v.value.clone())
+                                                    .filter(|v| !v.trim().is_empty())
+                                                    .collect::<Vec<String>>()
+                                                    .join(","),
+                                                Value::MultipleNumeric(vs) => vs
+                                                    .iter()
+                                                    .map(|v| v.value.clone())
+                                                    .filter(|v| !v.trim().is_empty())
+                                                    .collect::<Vec<String>>()
+                                                    .join(","),
+                                                Value::NestedAlphaNumeric(vss) => vss
+                                                    .iter()
+                                                    .map(|vs| {
+                                                        vs.iter()
+                                                            .map(|v| v.value.clone())
+                                                            .filter(|v| !v.trim().is_empty())
+                                                            .collect::<Vec<String>>()
+                                                            .join(",")
+                                                    })
+                                                    .filter(|v| !v.trim().is_empty())
+                                                    .collect::<Vec<String>>()
+                                                    .join(";"),
+                                                Value::NestedNumeric(vss) => vss
+                                                    .iter()
+                                                    .map(|vs| {
+                                                        vs.iter()
+                                                            .map(|v| v.value.clone())
+                                                            .filter(|v| !v.trim().is_empty())
+                                                            .collect::<Vec<String>>()
+                                                            .join(",")
+                                                    })
+                                                    .filter(|v| !v.trim().is_empty())
+                                                    .collect::<Vec<String>>()
+                                                    .join(";"),
+                                            };
+                                            ui.label(&field.name);
+                                            ui.label(value);
+                                            ui.end_row();
+                                        }
+                                    });
                                 });
-                        }
-                    })
+                                ui.end_row();
+                            }
+                        });
+                    }
+                });
             });
             egui::CentralPanel::default().show(ctx, |ui| {
                 egui::ScrollArea::both()

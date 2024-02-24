@@ -3,6 +3,7 @@ use bevy_reflect::Struct;
 use field::Field;
 use fileheader::FileHeader;
 use imagesegment::ImageSegment;
+use std::collections::BTreeMap;
 use std::{fmt::Display, fs::File};
 
 use self::field::Value;
@@ -92,21 +93,22 @@ impl NSIF {
         })
     }
 
-    pub fn fields(&self) -> Vec<&Field> {
-        let mut fields = Vec::new();
+    pub fn fields(&self) -> BTreeMap<String, Vec<&Field>> {
+        let mut fields = BTreeMap::new();
         let reflected_fileheader: &dyn Struct = &self.file_header;
-        fields.extend(
-            reflected_fileheader
-                .iter_fields()
-                .map(|field| field.downcast_ref::<Field>().unwrap()),
-        );
-        for image_segment in &self.image_segments {
+        let fileheader_fields = reflected_fileheader
+            .iter_fields()
+            .map(|field| field.downcast_ref::<Field>().unwrap())
+            .collect();
+        fields.insert(String::from("File Header"), fileheader_fields);
+
+        for (i, image_segment) in self.image_segments.iter().enumerate() {
             let reflected_subheader: &dyn Struct = &image_segment.sub_header;
-            fields.extend(
-                reflected_subheader
-                    .iter_fields()
-                    .map(|field| field.downcast_ref::<Field>().unwrap()),
-            );
+            let image_segment_fields = reflected_subheader
+                .iter_fields()
+                .map(|field| field.downcast_ref::<Field>().unwrap())
+                .collect::<Vec<&Field>>();
+            fields.insert(format!("Image Segment {}", i + 1), image_segment_fields);
         }
 
         fields
