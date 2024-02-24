@@ -1,6 +1,6 @@
-use super::field::FieldValue;
-use super::{parse_number, PrettyPrint};
-use crate::nsif::field::Field;
+use super::{parse_number_from_bytes, parse_string_from_bytes, PrettyPrint};
+use crate::nsif::field::{Field, Value};
+use crate::nsif::parse_number_from_string;
 use bevy_reflect::Reflect;
 use core::panic;
 use std::cmp::max;
@@ -19,22 +19,19 @@ impl ImageSegment {
         _subheader_length: i32,
         segment_length: i32,
     ) -> Result<ImageSegment, Box<dyn std::error::Error>> {
-        let image_subheader = ImageSubheader::parse(file)?;
+        let sub_header = ImageSubheader::parse(file)?;
         let mut data = vec![0; segment_length as usize];
         file.read(&mut data)?;
-        Ok(ImageSegment {
-            sub_header: image_subheader,
-            data,
-        })
+        Ok(ImageSegment { sub_header, data })
     }
 
     pub fn dimensions(&self) -> (i32, i32) {
-        if let (FieldValue::Single(height), FieldValue::Single(width)) =
+        if let (Value::SingleNumeric(height), Value::SingleNumeric(width)) =
             (&self.sub_header.nrows.value, &self.sub_header.ncols.value)
         {
             return (
-                parse_number(&height).unwrap(),
-                parse_number(&width).unwrap(),
+                parse_number_from_string(&height.value).unwrap(),
+                parse_number_from_string(&width.value).unwrap(),
             );
         }
         panic!()
@@ -205,7 +202,7 @@ impl ImageSubheader {
         file.read(&mut igeolo)?;
 
         file.read(&mut nicom)?;
-        let number_of_image_comments = parse_number(&nicom).unwrap_or(0);
+        let number_of_image_comments = parse_number_from_bytes(&nicom).unwrap_or(0);
         for _ in 0..number_of_image_comments {
             let mut icom = vec![0; 80];
             file.read(&mut icom)?;
@@ -219,14 +216,14 @@ impl ImageSubheader {
         }
 
         file.read(&mut nbands)?;
-        let nbands_value = parse_number(&nbands).unwrap_or(0);
+        let nbands_value = parse_number_from_bytes(&nbands).unwrap_or(0);
         if nbands_value == 0 {
             file.read(&mut xbands)?;
         }
         let number_of_bands = if nbands_value > 0 {
             nbands_value
         } else {
-            parse_number(&xbands).unwrap_or(0)
+            parse_number_from_bytes(&xbands).unwrap_or(0)
         };
 
         for _ in 0..number_of_bands {
@@ -243,11 +240,11 @@ impl ImageSubheader {
             file.read(&mut ifc)?;
             file.read(&mut imflt)?;
             file.read(&mut nluts)?;
-            let number_of_lut_entries = parse_number(&nluts).unwrap_or(0);
+            let number_of_lut_entries = parse_number_from_bytes(&nluts).unwrap_or(0);
             if number_of_lut_entries != 0 {
                 file.read(&mut nelut)?;
             }
-            let lut_entry_size = parse_number(&nelut).unwrap_or(0);
+            let lut_entry_size = parse_number_from_bytes(&nelut).unwrap_or(0);
             for _ in 0..number_of_lut_entries {
                 let mut lutd = vec![0; lut_entry_size as usize];
                 file.read(&mut lutd)?;
@@ -275,86 +272,234 @@ impl ImageSubheader {
         file.read(&mut iloc)?;
         file.read(&mut imag)?;
         file.read(&mut udidl)?;
-        let udid_length = max(parse_number(&udidl).unwrap_or(3) - 3, 0);
+        let udid_length = max(parse_number_from_bytes(&udidl).unwrap_or(3) - 3, 0);
         let mut udid = vec![0; udid_length as usize];
         if udid_length != 0 {
             file.read(&mut udofl)?;
             file.read(&mut udid)?;
         }
         file.read(&mut ixshdl)?;
-        let ixshdl_length = parse_number(&ixshdl).unwrap_or(0);
+        let ixshdl_length = parse_number_from_bytes(&ixshdl).unwrap_or(0);
         if ixshdl_length != 0 {
             file.read(&mut ixsofl)?;
         }
-        let ixsofl_length = max(parse_number(&ixsofl).unwrap_or(3) - 3, 0);
+        let ixsofl_length = max(parse_number_from_bytes(&ixsofl).unwrap_or(3) - 3, 0);
         let mut ixshd = vec![0; ixsofl_length as usize];
         if ixsofl_length != 0 {
             file.read(&mut ixshd)?;
         }
 
         Ok(ImageSubheader {
-            im: Field::from_single("File Part Type", im),
-            iid1: Field::from_single("Image Identifier 1", iid1),
-            idatim: Field::from_single("Image Date and Time", idatim),
-            tgtid: Field::from_single("Target Identifier", tgtid),
-            iid2: Field::from_single("Image Identifier 2", iid2),
-            isclas: Field::from_single("Image Security Classification", isclas),
-            isclsy: Field::from_single("Image Security Classification System", isclsy),
-            iscode: Field::from_single("Image Codewords", iscode),
-            isctlh: Field::from_single("Image Control and Handling", isctlh),
-            isrel: Field::from_single("Image Releasing Instructions", isrel),
-            isdctp: Field::from_single("Image Declassification Type", isdctp),
-            isdcdt: Field::from_single("Image Declassification Date", isdcdt),
-            isdcxm: Field::from_single("Image Declassification Exemption", isdcxm),
-            isdg: Field::from_single("Image Downgrade", isdg),
-            isdgdt: Field::from_single("Image Downgrade Date", isdgt),
-            iscltx: Field::from_single("Image Classification Text", iscltx),
-            iscatp: Field::from_single("Image Classification Authority Type", iscatp),
-            iscaut: Field::from_single("Image Classification Authority", iscaut),
-            iscrsn: Field::from_single("Image Classification Reason", iscrsn),
-            issrdt: Field::from_single("Image Security Source Date", issrdt),
-            isctln: Field::from_single("Image Security Control Number", isctln),
-            encryp: Field::from_single("Encryption", encryp),
-            isorce: Field::from_single("Image Source", isorce),
-            nrows: Field::from_single("Number of Significant Rows in Image", nrows),
-            ncols: Field::from_single("Number of Significant Columns in Image", ncols),
-            pvtype: Field::from_single("Pixel Value Type", pvtype),
-            irep: Field::from_single("Image Representation", irep),
-            icat: Field::from_single("Image Category", icat),
-            abpp: Field::from_single("Actual Bits-per-Pixel per Band", abpp),
-            pjust: Field::from_single("Pixel Justification", pjust),
-            icords: Field::from_single("Image Coordinate Representation", icords),
-            igeolo: Field::from_single("Image Geographic Location", igeolo),
-            nicom: Field::from_single("Number of Image Comments", nicom),
-            icoms: Field::from_multiple("Image comments", icoms),
-            ic: Field::from_single("Image compression", ic),
-            comrat: Field::from_single("Compression Rate Code", comrat),
-            nbands: Field::from_single("Number of Bands", nbands),
-            xbands: Field::from_single("Number of Multispectral Bands", xbands),
-            irepbands: Field::from_multiple("Band Representations", irepbands),
-            isubcats: Field::from_multiple("Band Subcategories", isubcats),
-            ifcs: Field::from_multiple("Band Image Filter Condition", ifcs),
-            imflts: Field::from_multiple("Band Standard Image Code", imflts),
-            nlutss: Field::from_multiple("Number of LUTs", nlutss),
-            neluts: Field::from_multiple("Number of LUT entries", neluts),
-            lutdss: Field::from_nested("LUTs", lutdss),
-            isync: Field::from_single("Image Sync Code", isync),
-            imode: Field::from_single("Image Mode", imode),
-            nbpr: Field::from_single("Number of Blocks per Row", nbpr),
-            nbpc: Field::from_single("Number of Blocks per Columns", nbpc),
-            nppbh: Field::from_single("Number of Pixels per Block Horizontal", nppbh),
-            nppbv: Field::from_single("Number of Pixels per Block Vertical", nppbv),
-            nbpp: Field::from_single("Number of Bits per Pixel per Band", nbpp),
-            idlvl: Field::from_single("Image Display Level", idlvl),
-            ialvl: Field::from_single("Image Attachment Level", ialvl),
-            iloc: Field::from_single("Image Location", iloc),
-            imag: Field::from_single("Image Magnification", imag),
-            udidl: Field::from_single("User-Defined Image Data Length", udidl),
-            udofl: Field::from_single("User-Defined Overflow", udofl),
-            udid: Field::from_single("User-Defined Image Data", udid),
-            ixshdl: Field::from_single("Image Extended Subheader Length", ixshdl),
-            ixsofl: Field::from_single("Image Extended Subheader Overflow", ixsofl),
-            ixshd: Field::from_single("Image Extended Subheader Data", ixshd),
+            im: Field::from_alphanumeric("File Part Type", parse_string_from_bytes(&im)?),
+            iid1: Field::from_alphanumeric("Image Identifier 1", parse_string_from_bytes(&iid1)?),
+            idatim: Field::from_numeric("Image Date and Time", parse_string_from_bytes(&idatim)?),
+            tgtid: Field::from_alphanumeric("Target Identifier", parse_string_from_bytes(&tgtid)?),
+            iid2: Field::from_alphanumeric("Image Identifier 2", parse_string_from_bytes(&iid2)?),
+            isclas: Field::from_alphanumeric(
+                "Image Security Classification",
+                parse_string_from_bytes(&isclas)?,
+            ),
+            isclsy: Field::from_alphanumeric(
+                "Image Security Classification System",
+                parse_string_from_bytes(&isclsy)?,
+            ),
+            iscode: Field::from_alphanumeric("Image Codewords", parse_string_from_bytes(&iscode)?),
+            isctlh: Field::from_alphanumeric(
+                "Image Control and Handling",
+                parse_string_from_bytes(&isctlh)?,
+            ),
+            isrel: Field::from_alphanumeric(
+                "Image Releasing Instructions",
+                parse_string_from_bytes(&isrel)?,
+            ),
+            isdctp: Field::from_alphanumeric(
+                "Image Declassification Type",
+                parse_string_from_bytes(&isdctp)?,
+            ),
+            isdcdt: Field::from_alphanumeric(
+                "Image Declassification Date",
+                parse_string_from_bytes(&isdcdt)?,
+            ),
+            isdcxm: Field::from_alphanumeric(
+                "Image Declassification Exemption",
+                parse_string_from_bytes(&isdcxm)?,
+            ),
+            isdg: Field::from_alphanumeric("Image Downgrade", parse_string_from_bytes(&isdg)?),
+            isdgdt: Field::from_alphanumeric(
+                "Image Downgrade Date",
+                parse_string_from_bytes(&isdgt)?,
+            ),
+            iscltx: Field::from_alphanumeric(
+                "Image Classification Text",
+                parse_string_from_bytes(&iscltx)?,
+            ),
+            iscatp: Field::from_alphanumeric(
+                "Image Classification Authority Type",
+                parse_string_from_bytes(&iscatp)?,
+            ),
+            iscaut: Field::from_alphanumeric(
+                "Image Classification Authority",
+                parse_string_from_bytes(&iscaut)?,
+            ),
+            iscrsn: Field::from_alphanumeric(
+                "Image Classification Reason",
+                parse_string_from_bytes(&iscrsn)?,
+            ),
+            issrdt: Field::from_alphanumeric(
+                "Image Security Source Date",
+                parse_string_from_bytes(&issrdt)?,
+            ),
+            isctln: Field::from_alphanumeric(
+                "Image Security Control Number",
+                parse_string_from_bytes(&isctln)?,
+            ),
+            encryp: Field::from_numeric("Encryption", parse_string_from_bytes(&encryp)?),
+            isorce: Field::from_alphanumeric("Image Source", parse_string_from_bytes(&isorce)?),
+            nrows: Field::from_numeric(
+                "Number of Significant Rows in Image",
+                parse_string_from_bytes(&nrows)?,
+            ),
+            ncols: Field::from_numeric(
+                "Number of Significant Columns in Image",
+                parse_string_from_bytes(&ncols)?,
+            ),
+            pvtype: Field::from_alphanumeric("Pixel Value Type", parse_string_from_bytes(&pvtype)?),
+            irep: Field::from_alphanumeric("Image Representation", parse_string_from_bytes(&irep)?),
+            icat: Field::from_alphanumeric("Image Category", parse_string_from_bytes(&icat)?),
+            abpp: Field::from_numeric(
+                "Actual Bits-per-Pixel per Band",
+                parse_string_from_bytes(&abpp)?,
+            ),
+            pjust: Field::from_alphanumeric(
+                "Pixel Justification",
+                parse_string_from_bytes(&pjust)?,
+            ),
+            icords: Field::from_alphanumeric(
+                "Image Coordinate Representation",
+                parse_string_from_bytes(&icords)?,
+            ),
+            igeolo: Field::from_alphanumeric(
+                "Image Geographic Location",
+                parse_string_from_bytes(&igeolo)?,
+            ),
+            nicom: Field::from_numeric(
+                "Number of Image Comments",
+                parse_string_from_bytes(&nicom)?,
+            ),
+            icoms: Field::from_multiple_alphanumeric(
+                "Image comments",
+                icoms
+                    .iter()
+                    .map(|i| parse_string_from_bytes(i).unwrap())
+                    .collect(),
+            ),
+            ic: Field::from_alphanumeric("Image compression", parse_string_from_bytes(&ic)?),
+            comrat: Field::from_alphanumeric(
+                "Compression Rate Code",
+                parse_string_from_bytes(&comrat)?,
+            ),
+            nbands: Field::from_numeric("Number of Bands", parse_string_from_bytes(&nbands)?),
+            xbands: Field::from_numeric(
+                "Number of Multispectral Bands",
+                parse_string_from_bytes(&xbands)?,
+            ),
+            irepbands: Field::from_multiple_alphanumeric(
+                "Band Representations",
+                irepbands
+                    .iter()
+                    .map(|i| parse_string_from_bytes(i).unwrap())
+                    .collect(),
+            ),
+            isubcats: Field::from_multiple_alphanumeric(
+                "Band Subcategories",
+                isubcats
+                    .iter()
+                    .map(|i| parse_string_from_bytes(i).unwrap())
+                    .collect(),
+            ),
+            ifcs: Field::from_multiple_alphanumeric(
+                "Band Image Filter Condition",
+                ifcs.iter()
+                    .map(|i| parse_string_from_bytes(i).unwrap())
+                    .collect(),
+            ),
+            imflts: Field::from_multiple_alphanumeric(
+                "Band Standard Image Code",
+                imflts
+                    .iter()
+                    .map(|i| parse_string_from_bytes(i).unwrap())
+                    .collect(),
+            ),
+            nlutss: Field::from_multiple_numeric(
+                "Number of LUTs",
+                nlutss
+                    .iter()
+                    .map(|i| parse_string_from_bytes(i).unwrap())
+                    .collect(),
+            ),
+            neluts: Field::from_multiple_numeric(
+                "Number of LUT entries",
+                neluts
+                    .iter()
+                    .map(|i| parse_string_from_bytes(i).unwrap())
+                    .collect(),
+            ),
+            lutdss: Field::from_nested_numeric(
+                "LUTs",
+                lutdss
+                    .iter()
+                    .map(|l| {
+                        l.iter()
+                            .map(|l| parse_string_from_bytes(l).unwrap())
+                            .collect()
+                    })
+                    .collect(),
+            ),
+
+            isync: Field::from_numeric("Image Sync Code", parse_string_from_bytes(&isync)?),
+            imode: Field::from_alphanumeric("Image Mode", parse_string_from_bytes(&imode)?),
+            nbpr: Field::from_numeric("Number of Blocks per Row", parse_string_from_bytes(&nbpr)?),
+            nbpc: Field::from_numeric(
+                "Number of Blocks per Columns",
+                parse_string_from_bytes(&nbpc)?,
+            ),
+            nppbh: Field::from_numeric(
+                "Number of Pixels per Block Horizontal",
+                parse_string_from_bytes(&nppbh)?,
+            ),
+            nppbv: Field::from_numeric(
+                "Number of Pixels per Block Vertical",
+                parse_string_from_bytes(&nppbv)?,
+            ),
+            nbpp: Field::from_numeric(
+                "Number of Bits per Pixel per Band",
+                parse_string_from_bytes(&nbpp)?,
+            ),
+            idlvl: Field::from_numeric("Image Display Level", parse_string_from_bytes(&idlvl)?),
+            ialvl: Field::from_numeric("Image Attachment Level", parse_string_from_bytes(&ialvl)?),
+            iloc: Field::from_numeric("Image Location", parse_string_from_bytes(&iloc)?),
+            imag: Field::from_alphanumeric("Image Magnification", parse_string_from_bytes(&imag)?),
+            udidl: Field::from_numeric(
+                "User-Defined Image Data Length",
+                parse_string_from_bytes(&udidl)?,
+            ),
+            udofl: Field::from_numeric("User-Defined Overflow", parse_string_from_bytes(&udofl)?),
+            udid: Field::from_alphanumeric(
+                "User-Defined Image Data",
+                parse_string_from_bytes(&udid)?,
+            ),
+            ixshdl: Field::from_numeric(
+                "Image Extended Subheader Length",
+                parse_string_from_bytes(&ixshdl)?,
+            ),
+            ixsofl: Field::from_numeric(
+                "Image Extended Subheader Overflow",
+                parse_string_from_bytes(&ixsofl)?,
+            ),
+            ixshd: Field::from_alphanumeric(
+                "Image Extended Subheader Data",
+                parse_string_from_bytes(&ixshd)?,
+            ),
         })
     }
 }

@@ -1,4 +1,4 @@
-use super::{parse_number, PrettyPrint};
+use super::{parse_number_from_bytes, parse_string_from_bytes, PrettyPrint};
 use crate::nsif::field::Field;
 use bevy_reflect::Reflect;
 use std::cmp::max;
@@ -152,7 +152,7 @@ impl FileHeader {
         file.read(&mut hl)?;
 
         file.read(&mut numi)?;
-        let number_of_image_segments = parse_number(&numi).unwrap_or(0);
+        let number_of_image_segments = parse_number_from_bytes(&numi).unwrap_or(0);
 
         for _ in 0..number_of_image_segments {
             let mut lish = vec![0; 6];
@@ -164,7 +164,7 @@ impl FileHeader {
         }
 
         file.read(&mut nums)?;
-        let number_of_graphic_segments = parse_number(&nums).unwrap_or(0);
+        let number_of_graphic_segments = parse_number_from_bytes(&nums).unwrap_or(0);
 
         for _ in 0..number_of_graphic_segments {
             let mut lssh = vec![0; 4];
@@ -178,7 +178,7 @@ impl FileHeader {
         file.read(&mut numx)?;
 
         file.read(&mut numt)?;
-        let number_of_text_segments = parse_number(&numt).unwrap_or(0);
+        let number_of_text_segments = parse_number_from_bytes(&numt).unwrap_or(0);
 
         for _ in 0..number_of_text_segments {
             let mut ltsh = vec![0; 4];
@@ -190,7 +190,7 @@ impl FileHeader {
         }
 
         file.read(&mut numdes)?;
-        let number_of_data_extension_segments = parse_number(&numdes).unwrap_or(0);
+        let number_of_data_extension_segments = parse_number_from_bytes(&numdes).unwrap_or(0);
 
         for _ in 0..number_of_data_extension_segments {
             let mut ldsh = vec![0; 4];
@@ -202,7 +202,7 @@ impl FileHeader {
         }
 
         file.read(&mut numres)?;
-        let number_of_reserved_extension_segments = parse_number(&numres).unwrap_or(0);
+        let number_of_reserved_extension_segments = parse_number_from_bytes(&numres).unwrap_or(0);
 
         for _ in 0..number_of_reserved_extension_segments {
             let mut lresh = vec![0; 4];
@@ -214,7 +214,7 @@ impl FileHeader {
         }
 
         file.read(&mut udhdl)?;
-        let udhd_length = max(parse_number(&udhdl).unwrap_or(3) - 3, 0);
+        let udhd_length = max(parse_number_from_bytes(&udhdl).unwrap_or(3) - 3, 0);
 
         if udhd_length != 0 {
             file.read(&mut udhofl)?;
@@ -224,7 +224,7 @@ impl FileHeader {
         file.read(&mut udhd)?;
 
         file.read(&mut xhdl)?;
-        let xhd_length = max(parse_number(&xhdl).unwrap_or(3) - 3, 0);
+        let xhd_length = max(parse_number_from_bytes(&xhdl).unwrap_or(3) - 3, 0);
 
         if xhd_length != 0 {
             file.read(&mut xhdlofl)?;
@@ -234,62 +234,145 @@ impl FileHeader {
         file.read(&mut xhd)?;
 
         Ok(FileHeader {
-            fhdr: Field::from_single("File Profile Name", fhdr),
-            fver: Field::from_single("File Version", fver),
-            clevel: Field::from_single("Complexity level", clevel),
-            stype: Field::from_single("Standard Type", stype),
-            ostaid: Field::from_single("Originating Station Identifier", ostaid),
-            fdt: Field::from_single("File Date and Time", fdt),
-            ftitle: Field::from_single("File Title", ftitle),
-            fsclas: Field::from_single("File Security Classification", fsclas),
-            fsclsy: Field::from_single("File Security Classification System", fsclsy),
-            fscode: Field::from_single("File Codewords", fscode),
-            fsctlh: Field::from_single("File Control and Handling", fsctlh),
-            fsrel: Field::from_single("File Releasing Instructions", fsrel),
-            fsdctp: Field::from_single("File Declassification Type", fsdctp),
-            fsdcdt: Field::from_single("File Declassification Date", fsdcdt),
-            fsdcxm: Field::from_single("File Declassifcation Exemption", fsdcxm),
-            fsdg: Field::from_single("File Downgrade", fsdg),
-            fsdgdt: Field::from_single("File Downgrade Date", fsdgdt),
-            fscltx: Field::from_single("File Classifcation Text", fscltx),
-            fscatp: Field::from_single("File Classification Authority Type", fscatp),
-            fscaut: Field::from_single("File Classification Authority", fscaut),
-            fscrsn: Field::from_single("File Classification Reason", fscrsn),
-            fssrdt: Field::from_single("File Security Source Date", fssrdt),
-            fsctln: Field::from_single("File Security Control Number", fsctln),
-            fscop: Field::from_single("File Copy Number", fscop),
-            fscpys: Field::from_single("File Number of Copies", fscpys),
-            encryp: Field::from_single("Encryption", encryp),
-            fbkgc: Field::from_single("File Background Color", fbkgc),
-            oname: Field::from_single("Originator's Name", oname),
-            ophone: Field::from_single("Originator's Phone Number", ophone),
-            fl: Field::from_single("File Length", fl),
-            hl: Field::from_single("NSIF File Header Length", hl),
-            numi: Field::from_single("Number of Image Segments", numi),
-            lishs: Field::from_multiple("Length of Image Subheader", lishs),
-            lis: Field::from_multiple("Length of Image Segment", lis),
-            nums: Field::from_single("Number of Graphic Segments", nums),
-            lsshs: Field::from_multiple("Length of Graphic Subheader", lsshs),
-            lss: Field::from_multiple("Length of Graphic Segment", lss),
-            numx: Field::from_single("Reserved for Future Use", numx),
-            numt: Field::from_single("Number of Text Segments", numt),
-            ltshs: Field::from_multiple("Length of Text Subheader", ltshs),
-            lts: Field::from_multiple("Length of Text Segment", lts),
-            numdes: Field::from_single("Number of Data Extension Segments", numdes),
-            ldshs: Field::from_multiple("Length of Data Extension Segment Subheader", ldshs),
-            lds: Field::from_multiple("Length of Data Extension Segment", lds),
-            numres: Field::from_single("Number of Reserved Extension Segments", numres),
-            lreshs: Field::from_multiple("Length of Reserved Extension Segment Subheader", lreshs),
-            lres: Field::from_multiple("Length of Reserved Extension Segment", lres),
-            udhdl: Field::from_single("User-Defined Header Data Length", udhdl),
-            udhofl: Field::from_single("User-Defined Header Overflow", udhofl),
-            udhd: Field::from_single("User-Defined Header Data", udhd),
-            xhdl: Field::from_single("Extended Header Data Length", xhdl),
-            xhdlofl: Field::from_single("Extended Header Data Overflow", xhdlofl),
-            xhd: Field::from_single("Extended Header Data", xhd),
+            fhdr: Field::from_alphanumeric("File Profile Name", parse_string_from_bytes(&fhdr)?),
+            fver: Field::from_alphanumeric("File Version", parse_string_from_bytes(&fver)?),
+            clevel: Field::from_numeric("Complexity level", parse_string_from_bytes(&clevel)?),
+            stype: Field::from_alphanumeric("Standard Type", parse_string_from_bytes(&stype)?),
+            ostaid: Field::from_alphanumeric(
+                "Originating Station Identifier",
+                parse_string_from_bytes(&ostaid)?,
+            ),
+            fdt: Field::from_numeric("File Date and Time", parse_string_from_bytes(&fdt)?),
+            ftitle: Field::from_alphanumeric("File Title", parse_string_from_bytes(&ftitle)?),
+            fsclas: Field::from_alphanumeric(
+                "File Security Classification",
+                parse_string_from_bytes(&fsclas)?,
+            ),
+            fsclsy: Field::from_alphanumeric(
+                "File Security Classification System",
+                parse_string_from_bytes(&fsclsy)?,
+            ),
+            fscode: Field::from_alphanumeric("File Codewords", parse_string_from_bytes(&fscode)?),
+            fsctlh: Field::from_alphanumeric("File Control and Handling", parse_string_from_bytes(&fsctlh)?),
+            fsrel: Field::from_alphanumeric("File Releasing Instructions", parse_string_from_bytes(&fsrel)?),
+            fsdctp: Field::from_alphanumeric("File Declassification Type", parse_string_from_bytes(&fsdctp)?),
+            fsdcdt: Field::from_alphanumeric("File Declassification Date", parse_string_from_bytes(&fsdcdt)?),
+            fsdcxm: Field::from_alphanumeric(
+                "File Declassifcation Exemption",
+                parse_string_from_bytes(&fsdcxm)?,
+            ),
+            fsdg: Field::from_alphanumeric("File Downgrade", parse_string_from_bytes(&fsdg)?),
+            fsdgdt: Field::from_alphanumeric("File Downgrade Date", parse_string_from_bytes(&fsdgdt)?),
+            fscltx: Field::from_alphanumeric("File Classifcation Text", parse_string_from_bytes(&fscltx)?),
+            fscatp: Field::from_alphanumeric(
+                "File Classification Authority Type",
+                parse_string_from_bytes(&fscatp)?,
+            ),
+            fscaut: Field::from_alphanumeric(
+                "File Classification Authority",
+                parse_string_from_bytes(&fscaut)?,
+            ),
+            fscrsn: Field::from_alphanumeric("File Classification Reason", parse_string_from_bytes(&fscrsn)?),
+            fssrdt: Field::from_alphanumeric("File Security Source Date", parse_string_from_bytes(&fssrdt)?),
+            fsctln: Field::from_alphanumeric(
+                "File Security Control Number",
+                parse_string_from_bytes(&fsctln)?,
+            ),
+            fscop: Field::from_numeric("File Copy Number", parse_string_from_bytes(&fscop)?),
+            fscpys: Field::from_numeric("File Number of Copies", parse_string_from_bytes(&fscpys)?),
+            encryp: Field::from_numeric("Encryption", parse_string_from_bytes(&encryp)?),
+            fbkgc: Field::from_numeric("File Background Color", parse_string_from_bytes(&fbkgc)?),
+            oname: Field::from_alphanumeric("Originator's Name", parse_string_from_bytes(&oname)?),
+            ophone: Field::from_alphanumeric("Originator's Phone Number", parse_string_from_bytes(&ophone)?),
+            fl: Field::from_numeric("File Length", parse_string_from_bytes(&fl)?),
+            hl: Field::from_numeric("NSIF File Header Length", parse_string_from_bytes(&hl)?),
+            numi: Field::from_numeric("Number of Image Segments", parse_string_from_bytes(&numi)?),
+            lishs: Field::from_multiple_numeric(
+                "Length of Image Subheader",
+                lishs
+                    .iter()
+                    .map(|l| parse_string_from_bytes(l).unwrap())
+                    .collect::<Vec<String>>(),
+            ),
+            lis: Field::from_multiple_numeric(
+                "Length of Image Segment",
+                lis.iter()
+                    .map(|l| parse_string_from_bytes(l).unwrap())
+                    .collect::<Vec<String>>(),
+            ),
+            nums: Field::from_numeric("Number of Graphic Segments", parse_string_from_bytes(&nums)?),
+            lsshs: Field::from_multiple_numeric(
+                "Length of Graphic Subheader",
+                lsshs
+                    .iter()
+                    .map(|l| parse_string_from_bytes(l).unwrap())
+                    .collect::<Vec<String>>(),
+            ),
+            lss: Field::from_multiple_numeric(
+                "Length of Graphic Segment",
+                lss.iter()
+                    .map(|l| parse_string_from_bytes(l).unwrap())
+                    .collect::<Vec<String>>(),
+            ),
+            numx: Field::from_numeric("Reserved for Future Use", parse_string_from_bytes(&numx)?),
+            numt: Field::from_numeric("Number of Text Segments", parse_string_from_bytes(&numt)?),
+            ltshs: Field::from_multiple_numeric(
+                "Length of Text Subheader",
+                ltshs
+                    .iter()
+                    .map(|l| parse_string_from_bytes(l).unwrap())
+                    .collect::<Vec<String>>(),
+            ),
+            lts: Field::from_multiple_numeric(
+                "Length of Text Segment",
+                lts.iter()
+                    .map(|l| parse_string_from_bytes(l).unwrap())
+                    .collect::<Vec<String>>(),
+            ),
+            numdes: Field::from_numeric(
+                "Number of Data Extension Segments",
+                parse_string_from_bytes(&numdes)?,
+            ),
+            ldshs: Field::from_multiple_numeric(
+                "Length of Data Extension Segment Subheader",
+                ldshs
+                    .iter()
+                    .map(|l| parse_string_from_bytes(l).unwrap())
+                    .collect::<Vec<String>>(),
+            ),
+            lds: Field::from_multiple_numeric(
+                "Length of Data Extension Segment",
+                lds.iter()
+                    .map(|l| parse_string_from_bytes(l).unwrap())
+                    .collect::<Vec<String>>(),
+            ),
+            numres: Field::from_numeric(
+                "Number of Reserved Extension Segments",
+                parse_string_from_bytes(&numres)?,
+            ),
+            lreshs: Field::from_multiple_numeric(
+                "Length of Reserved Extension Segment Subheader",
+                lreshs
+                    .iter()
+                    .map(|l| parse_string_from_bytes(l).unwrap())
+                    .collect::<Vec<String>>(),
+            ),
+            lres: Field::from_multiple_numeric(
+                "Length of Reserved Extension Segment",
+                lres.iter()
+                    .map(|l| parse_string_from_bytes(l).unwrap())
+                    .collect::<Vec<String>>(),
+            ),
+            udhdl: Field::from_numeric("User-Defined Header Data Length", parse_string_from_bytes(&udhdl)?),
+            udhofl: Field::from_numeric("User-Defined Header Overflow", parse_string_from_bytes(&udhofl)?),
+            udhd: Field::from_alphanumeric("User-Defined Header Data", parse_string_from_bytes(&udhd)?),
+            xhdl: Field::from_numeric("Extended Header Data Length", parse_string_from_bytes(&xhdl)?),
+            xhdlofl: Field::from_numeric("Extended Header Data Overflow", parse_string_from_bytes(&xhdlofl)?),
+            xhd: Field::from_alphanumeric("Extended Header Data", parse_string_from_bytes(&xhd)?),
         })
     }
 }
+
 impl PrettyPrint for FileHeader {}
 
 impl Display for FileHeader {

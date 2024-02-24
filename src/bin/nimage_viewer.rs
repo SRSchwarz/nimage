@@ -1,7 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 use eframe::egui::{self, load::SizedTexture};
-use nimage::nsif::{export::export_to_jpeg, field::FieldValue, parse_string, NSIF};
+use nimage::nsif::{export::export_to_jpeg, field::Value, NSIF};
 use std::fs::{self};
 
 fn main() -> Result<(), eframe::Error> {
@@ -91,21 +91,37 @@ impl eframe::App for NImageViewer {
                                 .show(ui, |ui| {
                                     for field in image.fields() {
                                         let value = match &field.value {
-                                            FieldValue::Single(v) => parse_string(&v).unwrap(),
-                                            FieldValue::Multiple(vs) => vs
+                                            Value::SingleAlphanumeric(v) => v.value.clone(),
+                                            Value::SingleNumeric(v) => v.value.clone(),
+                                            Value::MultipleAlphanumeric(vs) => vs
                                                 .iter()
-                                                .map(|v| parse_string(&v).unwrap_or(String::new()))
+                                                .map(|v| v.value.clone())
                                                 .filter(|v| !v.trim().is_empty())
                                                 .collect::<Vec<String>>()
                                                 .join(","),
-                                            FieldValue::Nested(vss) => vss
+                                            Value::MultipleNumeric(vs) => vs
+                                                .iter()
+                                                .map(|v| v.value.clone())
+                                                .filter(|v| !v.trim().is_empty())
+                                                .collect::<Vec<String>>()
+                                                .join(","),
+                                            Value::NestedAlphaNumeric(vss) => vss
                                                 .iter()
                                                 .map(|vs| {
                                                     vs.iter()
-                                                        .map(|v| {
-                                                            parse_string(&v)
-                                                                .unwrap_or(String::new())
-                                                        })
+                                                        .map(|v| v.value.clone())
+                                                        .filter(|v| !v.trim().is_empty())
+                                                        .collect::<Vec<String>>()
+                                                        .join(",")
+                                                })
+                                                .filter(|v| !v.trim().is_empty())
+                                                .collect::<Vec<String>>()
+                                                .join(";"),
+                                            Value::NestedNumeric(vss) => vss
+                                                .iter()
+                                                .map(|vs| {
+                                                    vs.iter()
+                                                        .map(|v| v.value.clone())
                                                         .filter(|v| !v.trim().is_empty())
                                                         .collect::<Vec<String>>()
                                                         .join(",")

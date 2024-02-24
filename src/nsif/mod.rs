@@ -1,10 +1,11 @@
 use bevy_reflect::Reflect;
 use bevy_reflect::Struct;
 use field::Field;
-use field::FieldValue;
 use fileheader::FileHeader;
 use imagesegment::ImageSegment;
 use std::{fmt::Display, fs::File};
+
+use self::field::Value;
 
 pub mod export;
 pub mod field;
@@ -69,8 +70,8 @@ impl NSIF {
         let mut image_segments = Vec::new();
 
         if let (
-            FieldValue::Multiple(image_segment_subheader_lengths),
-            FieldValue::Multiple(image_segment_lengths),
+            Value::MultipleNumeric(image_segment_subheader_lengths),
+            Value::MultipleNumeric(image_segment_lengths),
         ) = (&file_header.lishs.value, &file_header.lis.value)
         {
             for (subheader_length, segment_length) in image_segment_subheader_lengths
@@ -79,8 +80,8 @@ impl NSIF {
             {
                 image_segments.push(ImageSegment::parse(
                     file,
-                    parse_number(subheader_length)?,
-                    parse_number(segment_length)?,
+                    parse_number_from_string(&subheader_length.value)?,
+                    parse_number_from_string(&segment_length.value)?,
                 )?);
             }
         }
@@ -124,12 +125,17 @@ impl Display for NSIF {
     }
 }
 
-pub fn parse_string(vec: &Vec<u8>) -> Result<String, Box<dyn std::error::Error>> {
+pub fn parse_string_from_bytes(vec: &Vec<u8>) -> Result<String, Box<dyn std::error::Error>> {
     String::from_utf8(vec.clone()).map_err(Into::into)
 }
 
-pub fn parse_number(vec: &Vec<u8>) -> Result<i32, Box<dyn std::error::Error>> {
-    let s = parse_string(vec)?.trim_start_matches('0').to_owned();
+pub fn parse_number_from_bytes(vec: &Vec<u8>) -> Result<i32, Box<dyn std::error::Error>> {
+    let s = parse_string_from_bytes(vec)?;
+    parse_number_from_string(&s)
+}
+
+pub fn parse_number_from_string(s: &String) -> Result<i32, Box<dyn std::error::Error>> {
+    let s = s.trim_start_matches('0').to_owned();
     if s.is_empty() {
         Ok(0)
     } else {
