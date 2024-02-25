@@ -65,9 +65,8 @@ impl eframe::App for NImageViewer {
                             }
                         }
                     });
-                    ui.menu_button("Export", |ui| {
-                        // TODO disable button
-                        ui.add_enabled_ui(self.nsif.is_some(), |ui| {
+                    ui.add_enabled_ui(self.nsif.is_some(), |ui| {
+                        ui.menu_button("Export", |ui| {
                             if let Some(image) = &self.nsif {
                                 for (i, &ref image_segment) in
                                     &mut image.image_segments.iter().enumerate()
