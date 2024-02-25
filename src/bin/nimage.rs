@@ -1,10 +1,7 @@
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use nimage::nsif::{export::export_to_jpeg, NSIF};
-use std::{
-    fs::File,
-    path::PathBuf,
-    process::{self},
-};
+use std::{fs::File, path::PathBuf, process};
+use strum::Display;
 
 fn main() {
     let opts = Opts::parse();
@@ -26,12 +23,26 @@ fn main() {
         Command::Export(ExportArgs {
             input_file,
             output_file,
+            segment_type,
+            segment_position,
         }) => match File::open(input_file) {
             Ok(file) => {
+                if segment_position < 1 {
+                    eprintln!("Segment position must be at least 1");
+                    process::exit(1);
+                }
+                if segment_type != SegmentTypeArg::Image {
+                    eprintln!("Given Segment type is not implemented yet");
+                    process::exit(1);
+                }
                 if let Ok(nsif) = NSIF::parse(&file) {
-                    let image_segment = nsif.image_segments.get(0).unwrap();
-                    if let Err(_) = export_to_jpeg(image_segment, output_file) {
-                        eprintln!("Failed to export image segment to file");
+                    if let Some(image_segment) = nsif.image_segments.get(segment_position - 1) {
+                        if let Err(_) = export_to_jpeg(image_segment, output_file) {
+                            eprintln!("Failed to export image segment to file");
+                            process::exit(1);
+                        }
+                    } else {
+                        eprintln!("No image segment detected at this position");
                         process::exit(1);
                     }
                 } else {
@@ -79,4 +90,19 @@ pub struct ExportArgs {
     pub input_file: PathBuf,
     /// The path of the file to be exported
     pub output_file: PathBuf,
+    /// The segment type to be exported
+    #[arg(short = 't', long, default_value_t)]
+    pub segment_type: SegmentTypeArg,
+    /// The position of the segment to be exported
+    #[arg(short = 'p', long, default_value = "1")]
+    pub segment_position: usize,
+}
+
+#[derive(Debug, Clone, Default, ValueEnum, Display, PartialEq)]
+#[strum(serialize_all = "lowercase")]
+pub enum SegmentTypeArg {
+    #[default]
+    Image,
+    Graphic,
+    Text,
 }
