@@ -6,10 +6,23 @@ use strum::Display;
 fn main() {
     let opts = Opts::parse();
     match opts.command {
-        Command::Info(InfoArgs { input_file }) => match File::open(input_file) {
+        Command::Info(InfoArgs {
+            input_file,
+            print_all_flag,
+            print_image_segment_flag,
+        }) => match File::open(input_file) {
             Ok(file) => {
                 if let Ok(nsif) = NSIF::parse(&file) {
-                    println!("{nsif}");
+                    if print_image_segment_flag {
+                        for (i, image_segment) in nsif.image_segments.into_iter().enumerate() {
+                            println!("Image Segment {}:", i + 1);
+                            println!("{image_segment}");
+                        }
+                    } else if print_all_flag {
+                        // conflicts annotation, default_value_t annotation & else-if order needed to give us the
+                        // inteded effect. Probably need to simplify
+                        println!("{nsif}");
+                    }
                 } else {
                     eprintln!("Failed to parse given file");
                     process::exit(1);
@@ -62,7 +75,7 @@ fn main() {
 #[clap(
     author = "Simon Schwarz",
     version = "0.0.1",
-    about = "Nimage - A tool for parsing NSIF files"
+    about = "NImage - A tool for parsing NSIF files"
 )]
 pub struct Opts {
     /// The command to run
@@ -82,7 +95,22 @@ pub enum Command {
 pub struct InfoArgs {
     /// The path to the nsif file to be parsed
     pub input_file: PathBuf,
+    /// Print all metadata
+    #[arg(
+        short = 'a',
+        long = "all",
+        conflicts_with = "print_image_segment_flag",
+        action,
+        default_value_t = true
+    )]
+    pub print_all_flag: bool,
+    /// Print only image segment metadata
+    #[arg(short = 'i', long = "image", conflicts_with = "print_all_flag", action)]
+    pub print_image_segment_flag: bool,
 }
+
+#[derive(Debug, Args)]
+pub struct InfoTypeArg {}
 
 #[derive(Debug, Args)]
 pub struct ExportArgs {
