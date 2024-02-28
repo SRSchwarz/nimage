@@ -1,4 +1,4 @@
-use nimage::nsif::{parse_number_from_string,  NSIF};
+use nimage::nsif::{parse_number_from_string, NSIF};
 use std::fs::File;
 
 #[test]
@@ -30,7 +30,10 @@ macro_rules! assert_int_eq {
         match (&$left, &$right) {
             (left_val, right_val) => {
                 let field_value = left_val.as_single_numeric().unwrap();
-                assert_eq!(parse_number_from_string(&field_value.value).unwrap(), *right_val)
+                assert_eq!(
+                    parse_number_from_string(&field_value.value).unwrap(),
+                    *right_val
+                )
             }
         }
     };

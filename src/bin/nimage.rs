@@ -110,9 +110,6 @@ pub struct InfoArgs {
 }
 
 #[derive(Debug, Args)]
-pub struct InfoTypeArg {}
-
-#[derive(Debug, Args)]
 pub struct ExportArgs {
     /// The path to the nsif file to be parsed
     pub input_file: PathBuf,
