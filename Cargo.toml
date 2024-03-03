@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 bevy_reflect = "0.12.1"
-clap = { version = "4.5.0", features = ["derive"] }
+clap = { version = "4.5.0", features = ["derive", "cargo"] }
 eframe = "0.26.2"
 egui_extras = { version = "0.26.2", features = ["all_loaders"] }
 enum-as-inner = "0.6.0"

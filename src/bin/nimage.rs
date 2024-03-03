@@ -1,4 +1,4 @@
-use clap::{Args, Parser, Subcommand, ValueEnum};
+use clap::{crate_version, Args, Parser, Subcommand, ValueEnum};
 use nimage::nsif::{export::export_to_jpeg, NSIF};
 use std::{fs::File, path::PathBuf, process};
 use strum::Display;
@@ -74,7 +74,7 @@ fn main() {
 #[derive(Debug, Parser)]
 #[clap(
     author = "Simon Schwarz",
-    version = "0.0.1",
+    version = crate_version!(),
     about = "NImage - A tool for parsing NSIF files"
 )]
 pub struct Opts {
@@ -85,9 +85,9 @@ pub struct Opts {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// Display information about the NSIF file
+    /// Display information about a given NSIF file
     Info(InfoArgs),
-    /// Export segments as separate files
+    /// Export segments of a given NSIF file as separate files
     Export(ExportArgs),
 }
 
