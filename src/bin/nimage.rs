@@ -9,6 +9,7 @@ fn main() {
         Command::Info(InfoArgs {
             input_file,
             print_all_flag,
+            print_header_flag,
             print_image_segment_flag,
         }) => match File::open(input_file) {
             Ok(file) => {
@@ -18,6 +19,8 @@ fn main() {
                             println!("Image Segment {}:", i + 1);
                             println!("{image_segment}");
                         }
+                    } else if print_header_flag {
+                        println!("{}", nsif.file_header);
                     } else if print_all_flag {
                         // conflicts annotation, default_value_t annotation & else-if order needed to give us the
                         // inteded effect. Probably need to simplify
@@ -97,15 +100,17 @@ pub struct InfoArgs {
     pub input_file: PathBuf,
     /// Print all metadata
     #[arg(
-        short = 'a',
         long = "all",
-        conflicts_with = "print_image_segment_flag",
+        conflicts_with_all = vec!["print_image_segment_flag", "print_header_flag"],
         action,
         default_value_t = true
     )]
     pub print_all_flag: bool,
+    /// Print only file header metadata
+    #[arg(long = "header")]
+    pub print_header_flag: bool,
     /// Print only image segment metadata
-    #[arg(short = 'i', long = "image", conflicts_with = "print_all_flag", action)]
+    #[arg(long = "image", conflicts_with_all = vec!["print_all_flag", "print_header_flag"], action)]
     pub print_image_segment_flag: bool,
 }
 
