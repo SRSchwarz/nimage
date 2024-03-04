@@ -53,8 +53,9 @@ fn main() {
                 }
                 if let Ok(nsif) = NSIF::parse(&file) {
                     if let Some(image_segment) = nsif.image_segments.get(segment_position - 1) {
-                        if let Err(_) = export_to_jpeg(image_segment, output_file) {
+                        if let Err(e) = export_to_jpeg(image_segment, output_file) {
                             eprintln!("Failed to export image segment to file");
+                            eprintln!("{e}");
                             process::exit(1);
                         }
                     } else {

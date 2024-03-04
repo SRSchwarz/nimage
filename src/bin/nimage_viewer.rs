@@ -49,11 +49,11 @@ impl eframe::App for NImageViewer {
                                     if let Ok(image) = NSIF::parse(&file) {
                                         let image_segment = image.image_segments.get(0).unwrap();
                                         let (height, width) = image_segment.dimensions();
-                                        self.texture.get_or_insert(ctx.load_texture(
+                                        self.texture = Some(ctx.load_texture(
                                             "image-segment",
                                             egui::ColorImage::from_rgb(
                                                 [width as _, height as _],
-                                                &image_segment.data,
+                                                &image_segment.as_rgb(),
                                             ),
                                             Default::default(),
                                         ));

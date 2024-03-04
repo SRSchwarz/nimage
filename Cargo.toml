@@ -15,3 +15,7 @@ image = { version = "0.24.8", default-features = false, features = ["jpeg", "png
 jpeg-encoder = "0.6.0"
 rfd = "0.13.0"
 strum = { version = "0.26.1", features = ["derive"] }
+zune-jpeg = "0.4.11"
+
+[profile.dev.package.zune-jpeg]
+opt-level = 3

@@ -7,6 +7,7 @@ use std::cmp::max;
 use std::fmt::Display;
 use std::vec;
 use std::{fs::File, io::Read};
+use zune_jpeg::JpegDecoder;
 
 #[derive(Debug, Reflect)]
 pub struct ImageSegment {
@@ -36,8 +37,18 @@ impl ImageSegment {
         }
         panic!()
     }
-}
 
+    pub fn as_rgb(&self) -> Vec<u8> {
+        // TODO error handling, clone?
+        if let Value::SingleAlphanumeric(ic) = &self.sub_header.ic.value {
+            return match ic.value.as_str() {
+                "NC" => self.data.clone(),
+                _ => JpegDecoder::new(&self.data).decode().unwrap().clone(),
+            };
+        }
+        panic!()
+    }
+}
 #[derive(Debug, Reflect)]
 pub struct ImageSubheader {
     pub im: Field,
