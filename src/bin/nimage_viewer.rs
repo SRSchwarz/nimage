@@ -86,7 +86,7 @@ impl eframe::App for NImageViewer {
                 })
             });
             egui::SidePanel::left("details-panel").show(ctx, |ui| {
-                ui.set_width(450.0);
+                ui.set_width(400.0);
                 egui::ScrollArea::both().show(ui, |ui| {
                     if let Some(image) = &self.nsif {
                         egui::Grid::new("details-table").show(ui, |ui| {
