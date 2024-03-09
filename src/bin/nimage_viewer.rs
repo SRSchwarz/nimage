@@ -1,8 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-use eframe::egui::{self, load::SizedTexture};
+use eframe::egui::{self, load::SizedTexture, Context};
 use nimage::nsif::{export::export_to_jpeg, field::Value, NSIF};
-use std::fs::{self};
+use std::{env, fs, path::PathBuf, str::FromStr};
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
@@ -23,6 +23,7 @@ struct NImageViewer {
     zoom: f32,
     nsif: Option<NSIF>,
     texture: Option<egui::TextureHandle>,
+    initial_path: Option<PathBuf>,
 }
 impl Default for NImageViewer {
     fn default() -> Self {
@@ -30,11 +31,18 @@ impl Default for NImageViewer {
             zoom: 1.0,
             nsif: None,
             texture: None,
+            initial_path: env::args()
+                .collect::<Vec<String>>()
+                .get(1)
+                .and_then(|s| PathBuf::from_str(s.as_str()).ok()),
         }
     }
 }
 impl eframe::App for NImageViewer {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if let Some(path) = &self.initial_path.take() {
+            self.load_nsif(path, ctx);
+        }
         egui::CentralPanel::default().show(ctx, |_| {
             egui::TopBottomPanel::top("top-panel").show(ctx, |ui| {
                 egui::menu::bar(ui, |ui| {
@@ -45,23 +53,7 @@ impl eframe::App for NImageViewer {
                                 .add_filter("NSIF files", &vec!["nsif", "nitf"])
                                 .pick_file()
                             {
-                                if let Ok(file) = fs::File::open(path) {
-                                    if let Ok(image) = NSIF::parse(&file) {
-                                        let image_segment = image.image_segments.get(0).unwrap();
-                                        let (height, width) = image_segment.dimensions();
-                                        self.texture = Some(ctx.load_texture(
-                                            "image-segment",
-                                            egui::ColorImage::from_rgb(
-                                                [width as _, height as _],
-                                                &image_segment.as_rgb(),
-                                            ),
-                                            Default::default(),
-                                        ));
-                                        self.nsif = Some(image);
-                                        return;
-                                    }
-                                    eprintln!("Failed to parse given file")
-                                }
+                                self.load_nsif(&path, ctx);
                             }
                         }
                     });
@@ -172,5 +164,24 @@ impl eframe::App for NImageViewer {
                 }
             })
         });
+    }
+}
+
+impl NImageViewer {
+    fn load_nsif(&mut self, path: &PathBuf, ctx: &Context) {
+        if let Ok(file) = fs::File::open(path) {
+            if let Ok(image) = NSIF::parse(&file) {
+                let image_segment = image.image_segments.get(0).unwrap();
+                let (height, width) = image_segment.dimensions();
+                self.texture = Some(ctx.load_texture(
+                    "image-segment",
+                    egui::ColorImage::from_rgb([width as _, height as _], &image_segment.as_rgb()),
+                    Default::default(),
+                ));
+                self.nsif = Some(image);
+            } else {
+                eprintln!("Failed to parse given file")
+            }
+        }
     }
 }
