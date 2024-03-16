@@ -124,28 +124,7 @@ impl Display for Field {
                     write!(f, "    {}: {}", self.name, outer_s).unwrap();
                 }
                 Ok(())
-            } /*
-              FieldValue::Single(value) => {
-                  write!(f, "{}: {}", self.name, parse_string(&value).unwrap())
-              }
-              FieldValue::Multiple(values) => {
-                  for value in values {
-                      let s = parse_string(&value).unwrap();
-                  }
-                  Ok(())
-              }
-              FieldValue::Nested(outer_values) => {
-                  for outer_value in outer_values {
-                      let mut outer_s = String::new();
-                      for inner_value in outer_value {
-                          let s = parse_string(&inner_value).unwrap();
-                          outer_s.push_str(&s); // TODO indent?
-                      }
-                      write!(f, "    {}: {}", self.name, outer_s).unwrap();
-                  }
-                  Ok(())
-              }
-              */
+            }
         }
     }
 }

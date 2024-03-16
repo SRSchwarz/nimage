@@ -13,6 +13,7 @@ egui_extras = { version = "0.26.2", features = ["all_loaders"] }
 enum-as-inner = "0.6.0"
 image = { version = "0.24.8", default-features = false, features = ["jpeg", "png"] }
 jpeg-encoder = "0.6.0"
+jpeg2k = "0.6.6"
 rfd = "0.13.0"
 strum = { version = "0.26.1", features = ["derive"] }
 zune-jpeg = "0.4.11"

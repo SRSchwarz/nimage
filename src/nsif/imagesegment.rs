@@ -43,7 +43,12 @@ impl ImageSegment {
         if let Value::SingleAlphanumeric(ic) = &self.sub_header.ic.value {
             return match ic.value.as_str() {
                 "NC" => self.data.clone(),
-                _ => JpegDecoder::new(&self.data).decode().unwrap().clone(),
+                "C3" => JpegDecoder::new(&self.data).decode().unwrap().clone(),
+                "C8" => jpeg2k::Image::from_bytes(&self.data.as_slice())
+                    .and_then(|image| image.get_pixels(None))
+                    .map(|image_data| image_data.data)
+                    .unwrap(),
+                _ => panic!(),
             };
         }
         panic!()
