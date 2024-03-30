@@ -1,6 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-use eframe::egui::{self, load::SizedTexture, Context};
+use eframe::{
+    egui::{self, load::SizedTexture, Context},
+    emath::TSTransform,
+};
 use nimage::nsif::{export::export_to_jpeg, field::Value, NSIF};
 use std::{env, fs, path::PathBuf, str::FromStr};
 
@@ -20,21 +23,21 @@ fn main() -> Result<(), eframe::Error> {
 }
 
 struct NImageViewer {
-    zoom: f32,
     nsif: Option<NSIF>,
     texture: Option<egui::TextureHandle>,
     initial_path: Option<PathBuf>,
+    transform: TSTransform,
 }
 impl Default for NImageViewer {
     fn default() -> Self {
         NImageViewer {
-            zoom: 1.0,
             nsif: None,
             texture: None,
             initial_path: env::args()
                 .collect::<Vec<String>>()
                 .get(1)
                 .and_then(|s| PathBuf::from_str(s.as_str()).ok()),
+            transform: TSTransform::default(),
         }
     }
 }
@@ -143,22 +146,34 @@ impl eframe::App for NImageViewer {
                     .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible)
                     .show(ui, |ui| {
                         if let Some(_) = &self.nsif {
-                            ui.add(
+                            let image_response = ui.add(
+                                // TODO padding?, auto-scale, panning
                                 egui::Image::from_texture(SizedTexture::from_handle(
                                     &self.texture.clone().unwrap(), // TODO need to clone?
                                 ))
-                                .fit_to_original_size(self.zoom),
+                                .fit_to_original_size(self.transform.scaling), // TODO smoother
+                                                                               // scrolling?
                             );
+                            if image_response.contains_pointer() {
+                                let zoom_delta = ctx.input(|i| i.zoom_delta());
+                                self.transform =
+                                    self.transform * TSTransform::from_scaling(zoom_delta);
+                            }
                         }
                     });
             });
+
             egui::TopBottomPanel::bottom("bottom-panel").show(ctx, |ui| {
                 if let Some(_) = &self.nsif {
                     ui.with_layout(
                         egui::Layout::left_to_right(egui::Align::Center).with_cross_justify(true),
                         |ui| {
-                            ui.style_mut().spacing.slider_width = ui.available_width() - 45.0;
-                            ui.add(egui::Slider::new(&mut self.zoom, 0.1..=5.0));
+                            if let Some(pointer) = ui.ctx().input(|i| i.pointer.hover_pos()) {
+                                ui.label(format!("({},{})", pointer.x, pointer.y));
+                                // TODO world
+                                // coordinates,
+                                // bounds check
+                            }
                         },
                     );
                 }
