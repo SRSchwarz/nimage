@@ -152,7 +152,7 @@ impl eframe::App for NImageViewer {
                                     &self.texture.clone().unwrap(), // TODO need to clone?
                                 ))
                                 .fit_to_original_size(self.transform.scaling), // TODO smoother
-                                                                               // scrolling?
+                                                                               // scrolling? zoom on cursor position
                             );
                             if image_response.contains_pointer() {
                                 let zoom_delta = ctx.input(|i| i.zoom_delta());
