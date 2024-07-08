@@ -9,7 +9,7 @@ use std::{env, fs, path::PathBuf, str::FromStr};
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default(),
+        viewport: egui::ViewportBuilder::default().with_fullscreen(true),
         ..Default::default()
     };
     eframe::run_native(
