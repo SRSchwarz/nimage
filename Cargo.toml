@@ -8,10 +8,10 @@ edition = "2021"
 [dependencies]
 bevy_reflect = "0.12.1"
 clap = { version = "4.5.0", features = ["derive", "cargo"] }
-eframe = "0.27.1"
-egui_extras = { version = "0.27.1", features = ["all_loaders"] }
+eframe = "0.28.1"
 enum-as-inner = "0.6.0"
-image = { version = "0.24.8", default-features = false, features = ["jpeg", "png"] }
+egui_extras = { version = "*", features = ["all_loaders"] }
+image = { version = "0.25", features = ["jpeg", "png"] }
 jpeg-encoder = "0.6.0"
 jpeg2k = "0.6.6"
 rfd = "0.13.0"

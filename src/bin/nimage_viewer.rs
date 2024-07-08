@@ -1,7 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 use eframe::{
-    egui::{self, load::SizedTexture, Context},
+    egui::{self, load::SizedTexture, scroll_area::ScrollBarVisibility, Context, Response},
     emath::TSTransform,
 };
 use nimage::nsif::{export::export_to_jpeg, field::Value, NSIF};
@@ -15,10 +15,7 @@ fn main() -> Result<(), eframe::Error> {
     eframe::run_native(
         "NImage Viewer",
         options,
-        Box::new(|cc| {
-            egui_extras::install_image_loaders(&cc.egui_ctx);
-            Box::<NImageViewer>::default()
-        }),
+        Box::new(|_| Ok(Box::<NImageViewer>::default())),
     )
 }
 
@@ -27,6 +24,7 @@ struct NImageViewer {
     texture: Option<egui::TextureHandle>,
     initial_path: Option<PathBuf>,
     transform: TSTransform,
+    image_response: Option<Response>,
 }
 impl Default for NImageViewer {
     fn default() -> Self {
@@ -38,51 +36,54 @@ impl Default for NImageViewer {
                 .get(1)
                 .and_then(|s| PathBuf::from_str(s.as_str()).ok()),
             transform: TSTransform::default(),
+            image_response: None,
         }
     }
 }
 impl eframe::App for NImageViewer {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         if let Some(path) = &self.initial_path.take() {
+            // TODO async?
             self.load_nsif(path, ctx);
         }
-        egui::CentralPanel::default().show(ctx, |_| {
-            egui::TopBottomPanel::top("top-panel").show(ctx, |ui| {
-                egui::menu::bar(ui, |ui| {
-                    ui.menu_button("File", |ui| {
-                        if ui.button("Open").clicked() {
-                            ui.close_menu();
-                            if let Some(path) = rfd::FileDialog::new()
-                                .add_filter("NSIF files", &vec!["nsif", "nitf"])
-                                .pick_file()
-                            {
-                                self.load_nsif(&path, ctx);
-                            }
+
+        egui::TopBottomPanel::top("top-panel").show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                ui.menu_button("File", |ui| {
+                    if ui.button("Open").clicked() {
+                        ui.close_menu();
+                        if let Some(path) = rfd::FileDialog::new()
+                            .add_filter("NSIF files", &vec!["nsif", "nitf"])
+                            .pick_file()
+                        {
+                            self.load_nsif(&path, ctx);
                         }
-                    });
-                    ui.add_enabled_ui(self.nsif.is_some(), |ui| {
-                        ui.menu_button("Export", |ui| {
-                            if let Some(image) = &self.nsif {
-                                for (i, &ref image_segment) in
-                                    &mut image.image_segments.iter().enumerate()
-                                {
-                                    let button =
-                                        ui.button(format!("Export Image Segment {}", i + 1));
-                                    if button.clicked() {
-                                        ui.close_menu();
-                                        if let Some(path) = rfd::FileDialog::new().save_file() {
-                                            export_to_jpeg(&image_segment, path).unwrap();
-                                        }
+                    }
+                });
+                ui.add_enabled_ui(self.nsif.is_some(), |ui| {
+                    ui.menu_button("Export", |ui| {
+                        if let Some(image) = &self.nsif {
+                            for (i, &ref image_segment) in
+                                &mut image.image_segments.iter().enumerate()
+                            {
+                                let button = ui.button(format!("Export Image Segment {}", i + 1));
+                                if button.clicked() {
+                                    ui.close_menu();
+                                    if let Some(path) = rfd::FileDialog::new().save_file() {
+                                        export_to_jpeg(&image_segment, path).unwrap();
                                     }
                                 }
                             }
-                        })
-                    });
-                })
-            });
-            egui::SidePanel::left("details-panel").show(ctx, |ui| {
-                ui.set_width(400.0);
-                egui::ScrollArea::both().show(ui, |ui| {
+                        }
+                    })
+                });
+            })
+        });
+
+        egui::SidePanel::left("details-panel").show(ctx, |ui| {
+            egui::ScrollArea::both()
+                .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
+                .show(ui, |ui| {
                     if let Some(image) = &self.nsif {
                         egui::Grid::new("details-table").show(ui, |ui| {
                             for (header, fields) in image.fields() {
@@ -140,44 +141,89 @@ impl eframe::App for NImageViewer {
                         });
                     }
                 });
-            });
-            egui::CentralPanel::default().show(ctx, |ui| {
-                egui::ScrollArea::both()
-                    .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible)
-                    .show(ui, |ui| {
-                        if let Some(_) = &self.nsif {
-                            let image_response = ui.add(
-                                // TODO padding?, auto-scale, panning
-                                egui::Image::from_texture(SizedTexture::from_handle(
-                                    &self.texture.clone().unwrap(), // TODO need to clone?
-                                ))
-                                .fit_to_original_size(self.transform.scaling), // TODO smoother
-                                                                               // scrolling? zoom on cursor position
-                            );
-                            if image_response.contains_pointer() {
-                                let zoom_delta = ctx.input(|i| i.zoom_delta());
-                                self.transform =
-                                    self.transform * TSTransform::from_scaling(zoom_delta);
-                            }
-                        }
-                    });
-            });
+        });
 
-            egui::TopBottomPanel::bottom("bottom-panel").show(ctx, |ui| {
-                if let Some(_) = &self.nsif {
-                    ui.with_layout(
-                        egui::Layout::left_to_right(egui::Align::Center).with_cross_justify(true),
-                        |ui| {
-                            if let Some(pointer) = ui.ctx().input(|i| i.pointer.hover_pos()) {
-                                ui.label(format!("({},{})", pointer.x, pointer.y));
-                                // TODO world
-                                // coordinates,
-                                // bounds check
-                            }
-                        },
-                    );
+        egui::TopBottomPanel::bottom("bottom-panel").show(ctx, |ui| {
+            if let Some(_) = &self.nsif {
+                ui.with_layout(
+                    egui::Layout::left_to_right(egui::Align::Center).with_cross_justify(true),
+                    |ui| {
+                        if let Some(pointer) = ui.ctx().input(|i| i.pointer.hover_pos()) {
+                            ui.label(format!("({},{})", pointer.x, pointer.y));
+                            // TODO world
+                            // coordinates,
+                            // bounds check
+                        }
+                    },
+                );
+            }
+        });
+
+        egui::CentralPanel::default().show(ctx, |ui| {
+            let (id, rect) = ui.allocate_space(ui.available_size());
+            let response = ui.interact(rect, id, egui::Sense::click_and_drag());
+            // Allow dragging the background as well.
+            if response.dragged() {
+                self.transform.translation += response.drag_delta();
+            }
+
+            let transform =
+                TSTransform::from_translation(ui.min_rect().left_top().to_vec2()) * self.transform;
+
+            if let Some(pointer) = ui.ctx().input(|i| i.pointer.hover_pos()) {
+                // Note: doesn't catch zooming / panning if a button in this PanZoom container is hovered.
+                if response.hovered() {
+                    let pointer_in_layer = transform.inverse() * pointer;
+                    let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
+                    let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta);
+
+                    // Zoom in on pointer:
+                    self.transform = self.transform
+                        * TSTransform::from_translation(pointer_in_layer.to_vec2())
+                        * TSTransform::from_scaling(zoom_delta)
+                        * TSTransform::from_translation(-pointer_in_layer.to_vec2());
+
+                    // Pan:
+                    self.transform = TSTransform::from_translation(pan_delta) * self.transform;
                 }
-            })
+                if let Some(r) = &self.image_response {
+                    if r.hovered() {
+                        let pointer_in_layer = transform.inverse() * pointer;
+                        let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
+                        let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta);
+
+                        // Zoom in on pointer:
+                        self.transform = self.transform
+                            * TSTransform::from_translation(pointer_in_layer.to_vec2())
+                            * TSTransform::from_scaling(zoom_delta)
+                            * TSTransform::from_translation(-pointer_in_layer.to_vec2());
+
+                        // Pan:
+                        self.transform = TSTransform::from_translation(pan_delta) * self.transform;
+                    }
+                }
+            }
+
+            let window_layer = ui.layer_id();
+            let id = egui::Area::new(id.with(("subarea", 1)))
+                .order(egui::Order::Background)
+                .show(ui.ctx(), |ui| {
+                    ui.set_clip_rect(transform.inverse() * rect);
+                    egui::Frame::default()
+                        .stroke(ui.ctx().style().visuals.window_stroke)
+                        .fill(ui.style().visuals.panel_fill)
+                        .show(ui, |ui| {
+                            self.image_response = self.texture.as_ref().and_then(|texture| {
+                                Some(ui.add(egui::Image::from_texture(SizedTexture::from_handle(
+                                    texture,
+                                ))))
+                            })
+                        });
+                })
+                .response
+                .layer_id;
+            ui.ctx().set_transform_layer(id, transform);
+            ui.ctx().set_sublayer(window_layer, id);
         });
     }
 }
