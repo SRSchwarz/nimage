@@ -38,17 +38,17 @@ impl ImageSegment {
         panic!()
     }
 
-    pub fn as_rgb(&self) -> Vec<u8> {
+    pub fn as_rgb(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
         // TODO error handling, clone?
         if let Value::SingleAlphanumeric(ic) = &self.sub_header.ic.value {
             return match ic.value.as_str() {
-                "NC" => self.data.clone(),
-                "C3" => JpegDecoder::new(&self.data).decode().unwrap().clone(),
+                "NC" => Ok(self.data.clone()),
+                "C3" => JpegDecoder::new(&self.data).decode().map_err(Into::into),
                 "C8" => jpeg2k::Image::from_bytes(&self.data.as_slice())
                     .and_then(|image| image.get_pixels(None))
-                    .map(|image_data| image_data.data)
-                    .unwrap(),
-                _ => panic!(),
+                    .map_err(Into::into)
+                    .map(|image_data| image_data.data),
+                _ => Err("Unsupported type")?,
             };
         }
         panic!()

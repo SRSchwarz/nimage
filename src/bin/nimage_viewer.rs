@@ -232,16 +232,21 @@ impl NImageViewer {
     fn load_nsif(&mut self, path: &PathBuf, ctx: &Context) {
         if let Ok(file) = fs::File::open(path) {
             if let Ok(image) = NSIF::parse(&file) {
-                let image_segment = image.image_segments.get(0).unwrap();
-                let (height, width) = image_segment.dimensions();
-                self.texture = Some(ctx.load_texture(
-                    "image-segment",
-                    egui::ColorImage::from_rgb([width as _, height as _], &image_segment.as_rgb()),
-                    Default::default(),
-                ));
-                self.nsif = Some(image);
-            } else {
-                eprintln!("Failed to parse given file")
+                if let Some(image_segment) = image.image_segments.get(0) {
+                    let (height, width) = image_segment.dimensions();
+                    self.texture = image_segment.as_rgb().ok().map(|rgb| {
+                        ctx.load_texture(
+                            "image-segment",
+                            egui::ColorImage::from_rgb([width as _, height as _], &rgb),
+                            Default::default(),
+                        )
+                    });
+                    self.nsif = Some(image);
+                } else {
+                    self.nsif = None;
+                    self.texture = None;
+                    eprintln!("Failed to parse given file");
+                }
             }
         }
     }

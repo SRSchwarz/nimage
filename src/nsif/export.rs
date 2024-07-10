@@ -6,7 +6,7 @@ pub fn export_to_jpeg(
     image_segment: &ImageSegment,
     path: PathBuf,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let data = image_segment.as_rgb();
+    let data = image_segment.as_rgb()?;
     let mut output_path = path.clone();
     output_path.set_extension("jpg");
 
