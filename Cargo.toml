@@ -3,20 +3,18 @@ name = "nimage"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-bevy_reflect = "0.12.1"
-clap = { version = "4.5.0", features = ["derive", "cargo"] }
-eframe = "0.28.1"
-enum-as-inner = "0.6.0"
+bevy_reflect = "0.14.2"
+clap = { version = "4.5.20", features = ["derive", "cargo"] }
+eframe = "0.29.1"
+enum-as-inner = "0.6.1"
 egui_extras = { version = "*", features = ["all_loaders"] }
 image = { version = "0.25", features = ["jpeg", "png"] }
 jpeg-encoder = "0.6.0"
 jpeg2k = "0.6.6"
-rfd = "0.13.0"
-strum = { version = "0.26.1", features = ["derive"] }
-zune-jpeg = "0.4.11"
+rfd = "0.15.0"
+strum = { version = "0.26.3", features = ["derive"] }
+zune-jpeg = "0.4.13"
 
 [profile.dev.package.zune-jpeg]
 opt-level = 3
