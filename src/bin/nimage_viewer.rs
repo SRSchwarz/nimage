@@ -1,7 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 use eframe::{
-    egui::{self, load::SizedTexture, scroll_area::ScrollBarVisibility, Context, Response},
+    egui::{
+        self, load::SizedTexture, scroll_area::ScrollBarVisibility, Context, CursorIcon, Response,
+        Window,
+    },
     emath::TSTransform,
 };
 use nimage::nsif::{export::export_to_jpeg, field::Value, NSIF};
@@ -25,6 +28,7 @@ struct NImageViewer {
     initial_path: Option<PathBuf>,
     transform: TSTransform,
     image_response: Option<Response>,
+    show_details: bool,
 }
 impl Default for NImageViewer {
     fn default() -> Self {
@@ -37,13 +41,13 @@ impl Default for NImageViewer {
                 .and_then(|s| PathBuf::from_str(s.as_str()).ok()),
             transform: TSTransform::default(),
             image_response: None,
+            show_details: true,
         }
     }
 }
 impl eframe::App for NImageViewer {
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         if let Some(path) = &self.initial_path.take() {
-            // TODO async?
             self.load_nsif(path, ctx);
         }
 
@@ -58,6 +62,17 @@ impl eframe::App for NImageViewer {
                         {
                             self.load_nsif(&path, ctx);
                         }
+                    }
+                });
+                ui.menu_button("View", |ui| {
+                    let details_button = ui.button(if self.show_details {
+                        "Hide Details"
+                    } else {
+                        "Show Details"
+                    });
+                    if details_button.clicked() {
+                        self.show_details = !self.show_details;
+                        ui.close_menu();
                     }
                 });
                 ui.add_enabled_ui(self.nsif.is_some(), |ui| {
@@ -75,115 +90,107 @@ impl eframe::App for NImageViewer {
                                 }
                             }
                         }
-                    })
+                    });
                 });
             })
         });
-
-        egui::SidePanel::left("details-panel").show(ctx, |ui| {
-            egui::ScrollArea::both()
-                .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
-                .show(ui, |ui| {
-                    if let Some(image) = &self.nsif {
-                        egui::Grid::new("details-table").show(ui, |ui| {
-                            for (header, fields) in image.fields() {
-                                egui::CollapsingHeader::new(&header).show(ui, |ui| {
-                                    egui::Grid::new(&header).striped(true).show(ui, |ui| {
-                                        for field in fields {
-                                            let value = match &field.value {
-                                                Value::SingleAlphanumeric(v) => v.value.clone(),
-                                                Value::SingleNumeric(v) => v.value.clone(),
-                                                Value::MultipleAlphanumeric(vs) => vs
-                                                    .iter()
-                                                    .map(|v| v.value.clone())
-                                                    .filter(|v| !v.trim().is_empty())
-                                                    .collect::<Vec<String>>()
-                                                    .join(","),
-                                                Value::MultipleNumeric(vs) => vs
-                                                    .iter()
-                                                    .map(|v| v.value.clone())
-                                                    .filter(|v| !v.trim().is_empty())
-                                                    .collect::<Vec<String>>()
-                                                    .join(","),
-                                                Value::NestedAlphaNumeric(vss) => vss
-                                                    .iter()
-                                                    .map(|vs| {
-                                                        vs.iter()
-                                                            .map(|v| v.value.clone())
-                                                            .filter(|v| !v.trim().is_empty())
-                                                            .collect::<Vec<String>>()
-                                                            .join(",")
-                                                    })
-                                                    .filter(|v| !v.trim().is_empty())
-                                                    .collect::<Vec<String>>()
-                                                    .join(";"),
-                                                Value::NestedNumeric(vss) => vss
-                                                    .iter()
-                                                    .map(|vs| {
-                                                        vs.iter()
-                                                            .map(|v| v.value.clone())
-                                                            .filter(|v| !v.trim().is_empty())
-                                                            .collect::<Vec<String>>()
-                                                            .join(",")
-                                                    })
-                                                    .filter(|v| !v.trim().is_empty())
-                                                    .collect::<Vec<String>>()
-                                                    .join(";"),
-                                            };
-                                            ui.label(&field.name);
-                                            ui.label(value);
-                                            ui.end_row();
-                                        }
+        Window::new("Details")
+            .open(&mut self.show_details)
+            .show(ctx, |ui| {
+                egui::ScrollArea::both()
+                    .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
+                    .auto_shrink(false)
+                    .show(ui, |ui| {
+                        if let Some(image) = &self.nsif {
+                            egui::Grid::new("details-table").show(ui, |ui| {
+                                for (header, fields) in image.fields() {
+                                    egui::CollapsingHeader::new(&header).show(ui, |ui| {
+                                        egui::Grid::new(&header).striped(true).show(ui, |ui| {
+                                            for field in fields {
+                                                let value = match &field.value {
+                                                    Value::SingleAlphanumeric(v) => v.value.clone(),
+                                                    Value::SingleNumeric(v) => v.value.clone(),
+                                                    Value::MultipleAlphanumeric(vs) => vs
+                                                        .iter()
+                                                        .map(|v| v.value.clone())
+                                                        .filter(|v| !v.trim().is_empty())
+                                                        .collect::<Vec<String>>()
+                                                        .join(","),
+                                                    Value::MultipleNumeric(vs) => vs
+                                                        .iter()
+                                                        .map(|v| v.value.clone())
+                                                        .filter(|v| !v.trim().is_empty())
+                                                        .collect::<Vec<String>>()
+                                                        .join(","),
+                                                    Value::NestedAlphaNumeric(vss) => vss
+                                                        .iter()
+                                                        .map(|vs| {
+                                                            vs.iter()
+                                                                .map(|v| v.value.clone())
+                                                                .filter(|v| !v.trim().is_empty())
+                                                                .collect::<Vec<String>>()
+                                                                .join(",")
+                                                        })
+                                                        .filter(|v| !v.trim().is_empty())
+                                                        .collect::<Vec<String>>()
+                                                        .join(";"),
+                                                    Value::NestedNumeric(vss) => vss
+                                                        .iter()
+                                                        .map(|vs| {
+                                                            vs.iter()
+                                                                .map(|v| v.value.clone())
+                                                                .filter(|v| !v.trim().is_empty())
+                                                                .collect::<Vec<String>>()
+                                                                .join(",")
+                                                        })
+                                                        .filter(|v| !v.trim().is_empty())
+                                                        .collect::<Vec<String>>()
+                                                        .join(";"),
+                                                };
+                                                ui.label(&field.name);
+                                                ui.label(value);
+                                                ui.end_row();
+                                            }
+                                        });
                                     });
-                                });
-                                ui.end_row();
-                            }
-                        });
-                    }
-                });
-        });
-
-        egui::TopBottomPanel::bottom("bottom-panel").show(ctx, |ui| {
-            if let Some(_) = &self.nsif {
-                ui.with_layout(
-                    egui::Layout::left_to_right(egui::Align::Center).with_cross_justify(true),
-                    |ui| {
-                        if let Some(pointer) = ui.ctx().input(|i| i.pointer.hover_pos()) {
-                            ui.label(format!("({},{})", pointer.x, pointer.y));
-                            // TODO world
-                            // coordinates,
-                            // bounds check
+                                    ui.end_row();
+                                }
+                            });
                         }
-                    },
-                );
-            }
-        });
+                    });
+            });
+        // });
+
+        // egui::TopBottomPanel::bottom("bottom-panel").show(ctx, |ui| {
+        //     if let Some(_) = &self.nsif {
+        //         ui.with_layout(
+        //             egui::Layout::left_to_right(egui::Align::Center).with_cross_justify(true),
+        //             |ui| {
+        //                 if let Some(pointer) = ui.ctx().input(|i| i.pointer.hover_pos()) {
+        //                     ui.label(format!("({},{})", pointer.x, pointer.y));
+        //                     // TODO world
+        //                     // coordinates,
+        //                     // bounds check
+        //                 }
+        //             },
+        //         );
+        //     }
+        // });
 
         egui::CentralPanel::default().show(ctx, |ui| {
             let (id, rect) = ui.allocate_space(ui.available_size());
             let response = ui.interact(rect, id, egui::Sense::click_and_drag());
-            // Allow dragging the background as well.
-            if response.dragged() {
-                self.transform.translation += response.drag_delta();
-            }
-
             let transform =
                 TSTransform::from_translation(ui.min_rect().left_top().to_vec2()) * self.transform;
-
             if let Some(pointer) = ui.ctx().input(|i| i.pointer.hover_pos()) {
-                // Note: doesn't catch zooming / panning if a button in this PanZoom container is hovered.
                 if response.hovered() {
                     let pointer_in_layer = transform.inverse() * pointer;
                     let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
                     let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta);
-
-                    // Zoom in on pointer:
                     self.transform = self.transform
                         * TSTransform::from_translation(pointer_in_layer.to_vec2())
                         * TSTransform::from_scaling(zoom_delta)
                         * TSTransform::from_translation(-pointer_in_layer.to_vec2());
-
-                    // Pan:
                     self.transform = TSTransform::from_translation(pan_delta) * self.transform;
                 }
                 if let Some(r) = &self.image_response {
@@ -191,14 +198,10 @@ impl eframe::App for NImageViewer {
                         let pointer_in_layer = transform.inverse() * pointer;
                         let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
                         let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta);
-
-                        // Zoom in on pointer:
                         self.transform = self.transform
                             * TSTransform::from_translation(pointer_in_layer.to_vec2())
                             * TSTransform::from_scaling(zoom_delta)
                             * TSTransform::from_translation(-pointer_in_layer.to_vec2());
-
-                        // Pan:
                         self.transform = TSTransform::from_translation(pan_delta) * self.transform;
                     }
                 }
@@ -214,9 +217,14 @@ impl eframe::App for NImageViewer {
                         .fill(ui.style().visuals.panel_fill)
                         .show(ui, |ui| {
                             self.image_response = self.texture.as_ref().and_then(|texture| {
-                                Some(ui.add(egui::Image::from_texture(SizedTexture::from_handle(
-                                    texture,
-                                ))))
+                                Some(
+                                    ui.add(
+                                        egui::Image::from_texture(SizedTexture::from_handle(
+                                            texture,
+                                        ))
+                                        .fit_to_exact_size(rect.size()),
+                                    ),
+                                )
                             })
                         });
                 })
