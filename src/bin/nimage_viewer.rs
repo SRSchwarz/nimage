@@ -1,10 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 use eframe::{
-    egui::{
-        self, load::SizedTexture, scroll_area::ScrollBarVisibility, Context, CursorIcon, Response,
-        Window,
-    },
+    egui::{self, load::SizedTexture, scroll_area::ScrollBarVisibility, Context, Response, Window},
     emath::TSTransform,
 };
 use nimage::nsif::{export::export_to_jpeg, field::Value, NSIF};
@@ -50,128 +47,124 @@ impl eframe::App for NImageViewer {
         if let Some(path) = &self.initial_path.take() {
             self.load_nsif(path, ctx);
         }
-
-        Window::new("Menu").show(ctx, |ui| {
-            if ui.button("Open File").clicked() {
-                if let Some(path) = rfd::FileDialog::new()
-                    .add_filter("NSIF files", &vec!["nsif", "nitf"])
-                    .pick_file()
-                {
-                    self.load_nsif(&path, ctx);
+        Window::new("Menu").default_width(600.0).show(ctx, |ui| {
+            ui.heading("File");
+            ui.horizontal(|ui| {
+                if ui.button("Open File").clicked() {
+                    if let Some(path) = rfd::FileDialog::new()
+                        .add_filter("NSIF files", &vec!["nsif", "nitf"])
+                        .pick_file()
+                    {
+                        self.load_nsif(&path, ctx);
+                    }
                 }
-            }
+                if let Some(current_segment) = self.selected_image_segment_index {
+                    if ui.button("Export Current Segment").clicked() {
+                        if let Some(path) = rfd::FileDialog::new().save_file() {
+                            let image = self.nsif.as_ref().unwrap();
+                            export_to_jpeg(
+                                &image.image_segments.get(current_segment).unwrap(),
+                                path,
+                            )
+                            .unwrap()
+                        }
+                    }
+                }
+            });
+            ui.allocate_space(egui::Vec2::new(0.0, 2.0));
+            ui.heading("Show");
             if let Some(image) = &self.nsif {
                 let previous_selection = self.selected_image_segment_index;
-                egui::ComboBox::new("image-segment-selector", "")
-                    .selected_text(
-                        self.selected_image_segment_index
-                            .map(|i| format!("Image Segment {}", i + 1))
-                            .unwrap_or("Select an Image Segment".to_string()),
-                    )
-                    .show_ui(ui, |ui| {
-                        for (i, _) in image.image_segments.iter().enumerate() {
-                            ui.selectable_value(
-                                &mut self.selected_image_segment_index,
-                                Some(i),
-                                format!("Image Segment {}", i + 1),
-                            );
-                        }
-                        if self.selected_image_segment_index != previous_selection {
-                            if let Some(image_segment) = image
-                                .image_segments
-                                .get(self.selected_image_segment_index.unwrap())
-                            {
-                                let (height, width) = image_segment.dimensions();
-                                self.texture = image_segment.as_rgb().ok().map(|rgb| {
-                                    ctx.load_texture(
-                                        "image-segment",
-                                        egui::ColorImage::from_rgb([width as _, height as _], &rgb),
-                                        Default::default(),
-                                    )
-                                })
-                            }
-                        }
-                    });
-
-                //     for (i, &ref image_segment) in &mut image.image_segments.iter().enumerate()
-                //     {
-                //         ui.selectable_value(current_value, selected_value, text)
-                //         let button = ui.button(format!("Export Image Segment {}", i + 1));
-                //         if button.clicked() {
-                //             ui.close_menu();
-                //             if let Some(path) = rfd::FileDialog::new().save_file() {
-                //                 export_to_jpeg(&image_segment, path).unwrap();
-                //             }
-                //         }
-                //     }
-                // });
-            };
-        });
-        if self.nsif.is_some() {
-            Window::new("Details").show(ctx, |ui| {
-                egui::ScrollArea::both()
-                    .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
-                    .auto_shrink(false)
-                    .show(ui, |ui| {
-                        if let Some(image) = &self.nsif {
-                            egui::Grid::new("details-table").show(ui, |ui| {
-                                for (header, fields) in image.fields() {
-                                    egui::CollapsingHeader::new(&header).show(ui, |ui| {
-                                        egui::Grid::new(&header).striped(true).show(ui, |ui| {
-                                            for field in fields {
-                                                let value = match &field.value {
-                                                    Value::SingleAlphanumeric(v) => v.value.clone(),
-                                                    Value::SingleNumeric(v) => v.value.clone(),
-                                                    Value::MultipleAlphanumeric(vs) => vs
-                                                        .iter()
-                                                        .map(|v| v.value.clone())
-                                                        .filter(|v| !v.trim().is_empty())
-                                                        .collect::<Vec<String>>()
-                                                        .join(","),
-                                                    Value::MultipleNumeric(vs) => vs
-                                                        .iter()
-                                                        .map(|v| v.value.clone())
-                                                        .filter(|v| !v.trim().is_empty())
-                                                        .collect::<Vec<String>>()
-                                                        .join(","),
-                                                    Value::NestedAlphaNumeric(vss) => vss
-                                                        .iter()
-                                                        .map(|vs| {
-                                                            vs.iter()
-                                                                .map(|v| v.value.clone())
-                                                                .filter(|v| !v.trim().is_empty())
-                                                                .collect::<Vec<String>>()
-                                                                .join(",")
-                                                        })
-                                                        .filter(|v| !v.trim().is_empty())
-                                                        .collect::<Vec<String>>()
-                                                        .join(";"),
-                                                    Value::NestedNumeric(vss) => vss
-                                                        .iter()
-                                                        .map(|vs| {
-                                                            vs.iter()
-                                                                .map(|v| v.value.clone())
-                                                                .filter(|v| !v.trim().is_empty())
-                                                                .collect::<Vec<String>>()
-                                                                .join(",")
-                                                        })
-                                                        .filter(|v| !v.trim().is_empty())
-                                                        .collect::<Vec<String>>()
-                                                        .join(";"),
-                                                };
-                                                ui.label(&field.name);
-                                                ui.label(value);
-                                                ui.end_row();
-                                            }
-                                        });
+                ui.horizontal(|ui| {
+                    ui.selectable_value(&mut self.selected_image_segment_index, None, "None");
+                    for (i, _) in image.image_segments.iter().enumerate() {
+                        ui.selectable_value(
+                            &mut self.selected_image_segment_index,
+                            Some(i),
+                            format!("Image Segment {}", i + 1),
+                        );
+                    }
+                });
+                if self.selected_image_segment_index != previous_selection {
+                    if let Some(image_segment) = image
+                        .image_segments
+                        .get(self.selected_image_segment_index.unwrap())
+                    {
+                        let (height, width) = image_segment.dimensions();
+                        self.texture = image_segment.as_rgb().ok().map(|rgb| {
+                            ctx.load_texture(
+                                "image-segment",
+                                egui::ColorImage::from_rgb([width as _, height as _], &rgb),
+                                Default::default(),
+                            )
+                        })
+                    }
+                }
+            }
+            ui.allocate_space(egui::Vec2::new(0.0, 2.0));
+            ui.heading("Details");
+            egui::ScrollArea::both()
+                .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
+                .auto_shrink(false)
+                .show(ui, |ui| {
+                    if let Some(image) = &self.nsif {
+                        egui::Grid::new("details-table").show(ui, |ui| {
+                            for (header, fields) in image.fields() {
+                                egui::CollapsingHeader::new(&header).show(ui, |ui| {
+                                    egui::Grid::new(&header).striped(true).show(ui, |ui| {
+                                        for field in fields {
+                                            let value = match &field.value {
+                                                Value::SingleAlphanumeric(v) => v.value.clone(),
+                                                Value::SingleNumeric(v) => v.value.clone(),
+                                                Value::MultipleAlphanumeric(vs) => vs
+                                                    .iter()
+                                                    .map(|v| v.value.clone())
+                                                    .filter(|v| !v.trim().is_empty())
+                                                    .collect::<Vec<String>>()
+                                                    .join(","),
+                                                Value::MultipleNumeric(vs) => vs
+                                                    .iter()
+                                                    .map(|v| v.value.clone())
+                                                    .filter(|v| !v.trim().is_empty())
+                                                    .collect::<Vec<String>>()
+                                                    .join(","),
+                                                Value::NestedAlphaNumeric(vss) => vss
+                                                    .iter()
+                                                    .map(|vs| {
+                                                        vs.iter()
+                                                            .map(|v| v.value.clone())
+                                                            .filter(|v| !v.trim().is_empty())
+                                                            .collect::<Vec<String>>()
+                                                            .join(",")
+                                                    })
+                                                    .filter(|v| !v.trim().is_empty())
+                                                    .collect::<Vec<String>>()
+                                                    .join(";"),
+                                                Value::NestedNumeric(vss) => vss
+                                                    .iter()
+                                                    .map(|vs| {
+                                                        vs.iter()
+                                                            .map(|v| v.value.clone())
+                                                            .filter(|v| !v.trim().is_empty())
+                                                            .collect::<Vec<String>>()
+                                                            .join(",")
+                                                    })
+                                                    .filter(|v| !v.trim().is_empty())
+                                                    .collect::<Vec<String>>()
+                                                    .join(";"),
+                                            };
+                                            ui.label(&field.name);
+                                            ui.label(value);
+                                            ui.end_row();
+                                        }
                                     });
-                                    ui.end_row();
-                                }
-                            });
-                        }
-                    });
-            });
-        }
+                                });
+                                ui.end_row();
+                            }
+                        });
+                    }
+                });
+        });
         egui::CentralPanel::default().show(ctx, |ui| {
             let (id, rect) = ui.allocate_space(ui.available_size());
             let response = ui.interact(rect, id, egui::Sense::click_and_drag());
