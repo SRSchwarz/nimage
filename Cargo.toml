@@ -15,6 +15,7 @@ jpeg2k = "0.6.6"
 rfd = "0.15.0"
 strum = { version = "0.26.3", features = ["derive"] }
 zune-jpeg = "0.4.13"
+egui-notify = "0.17.0"
 
 [profile.dev.package.zune-jpeg]
 opt-level = 3

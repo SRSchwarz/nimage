@@ -4,6 +4,7 @@ use eframe::{
     egui::{self, load::SizedTexture, scroll_area::ScrollBarVisibility, Context, Response, Window},
     emath::TSTransform,
 };
+use egui_notify::Toasts;
 use nimage::nsif::{export::export_to_jpeg, field::Value, NSIF};
 use std::{env, fs, path::PathBuf, str::FromStr};
 
@@ -27,6 +28,7 @@ struct NImageViewer {
     image_response: Option<Response>,
     selected_image_segment_index: Option<usize>,
     image_was_updated: bool,
+    toasts: egui_notify::Toasts,
 }
 impl Default for NImageViewer {
     fn default() -> Self {
@@ -41,6 +43,7 @@ impl Default for NImageViewer {
             image_response: None,
             selected_image_segment_index: None,
             image_was_updated: false,
+            toasts: Toasts::default(),
         }
     }
 }
@@ -63,12 +66,16 @@ impl eframe::App for NImageViewer {
                 if let Some(current_segment) = self.selected_image_segment_index {
                     if ui.button("Export Current Segment").clicked() {
                         if let Some(path) = rfd::FileDialog::new().save_file() {
-                            let image = self.nsif.as_ref().unwrap();
-                            export_to_jpeg(
-                                &image.image_segments.get(current_segment).unwrap(),
-                                path,
-                            )
-                            .unwrap()
+                            if let Some(_) = self.nsif.as_ref().and_then(|image| {
+                                image
+                                    .image_segments
+                                    .get(current_segment)
+                                    .and_then(|segment| export_to_jpeg(segment, path).err())
+                            }) {
+                                self.toasts.error("Export failed.");
+                            } else {
+                                self.toasts.success("Export successful.");
+                            }
                         }
                     }
                 }
@@ -213,11 +220,12 @@ impl eframe::App for NImageViewer {
             ui.ctx().set_transform_layer(id, transform);
             ui.ctx().set_sublayer(window_layer, id);
         });
+        self.toasts.show(ctx);
     }
 }
 
 impl NImageViewer {
-    fn load_nsif(&mut self, path: &PathBuf, ctx: &Context) {
+    fn load_nsif(&mut self, path: &PathBuf, _ctx: &Context) {
         if let Ok(file) = fs::File::open(path) {
             if let Ok(image) = NSIF::parse(&file) {
                 if image.image_segments.len() > 0 {
@@ -229,27 +237,28 @@ impl NImageViewer {
             } else {
                 self.nsif = None;
                 self.texture = None;
-                eprintln!("Failed to parse given file"); // TODO error popup?
+                self.toasts.error("Failed to parse given file");
             }
             self.image_was_updated = true
         }
     }
 
     fn update_image_segment_display(&mut self, ctx: &Context) {
-        let image = self.nsif.as_ref().unwrap();
-        if let Some(selected_segment) = self.selected_image_segment_index {
-            if let Some(image_segment) = image.image_segments.get(selected_segment) {
-                let (height, width) = image_segment.dimensions();
-                self.texture = image_segment.as_rgb().ok().map(|rgb| {
-                    ctx.load_texture(
-                        "image-segment",
-                        egui::ColorImage::from_rgb([width as _, height as _], &rgb),
-                        Default::default(),
-                    )
-                })
+        if let Some(image) = self.nsif.as_ref() {
+            if let Some(selected_segment) = self.selected_image_segment_index {
+                if let Some(image_segment) = image.image_segments.get(selected_segment) {
+                    let (height, width) = image_segment.dimensions();
+                    self.texture = image_segment.as_rgb().ok().map(|rgb| {
+                        ctx.load_texture(
+                            "image-segment",
+                            egui::ColorImage::from_rgb([width as _, height as _], &rgb),
+                            Default::default(),
+                        )
+                    })
+                }
+            } else {
+                self.texture = None;
             }
-        } else {
-            self.texture = None;
         }
     }
 }
