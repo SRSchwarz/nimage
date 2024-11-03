@@ -26,6 +26,7 @@ struct NImageViewer {
     transform: TSTransform,
     image_response: Option<Response>,
     selected_image_segment_index: Option<usize>,
+    image_was_updated: bool,
 }
 impl Default for NImageViewer {
     fn default() -> Self {
@@ -39,6 +40,7 @@ impl Default for NImageViewer {
             transform: TSTransform::default(),
             image_response: None,
             selected_image_segment_index: None,
+            image_was_updated: false,
         }
     }
 }
@@ -85,20 +87,10 @@ impl eframe::App for NImageViewer {
                         );
                     }
                 });
-                if self.selected_image_segment_index != previous_selection {
-                    if let Some(image_segment) = image
-                        .image_segments
-                        .get(self.selected_image_segment_index.unwrap())
-                    {
-                        let (height, width) = image_segment.dimensions();
-                        self.texture = image_segment.as_rgb().ok().map(|rgb| {
-                            ctx.load_texture(
-                                "image-segment",
-                                egui::ColorImage::from_rgb([width as _, height as _], &rgb),
-                                Default::default(),
-                            )
-                        })
-                    }
+                if self.selected_image_segment_index != previous_selection || self.image_was_updated
+                {
+                    self.update_image_segment_display(ctx);
+                    self.image_was_updated = false;
                 }
             }
             ui.allocate_space(egui::Vec2::new(0.0, 2.0));
@@ -228,12 +220,35 @@ impl NImageViewer {
     fn load_nsif(&mut self, path: &PathBuf, ctx: &Context) {
         if let Ok(file) = fs::File::open(path) {
             if let Ok(image) = NSIF::parse(&file) {
+                if image.image_segments.len() > 0 {
+                    self.selected_image_segment_index = Some(0);
+                } else {
+                    self.selected_image_segment_index = None;
+                }
                 self.nsif = Some(image);
             } else {
                 self.nsif = None;
                 self.texture = None;
                 eprintln!("Failed to parse given file"); // TODO error popup?
             }
+            self.image_was_updated = true
+        }
+    }
+
+    fn update_image_segment_display(&mut self, ctx: &Context) {
+        let image = self.nsif.as_ref().unwrap();
+        if let Some(image_segment) = image
+            .image_segments
+            .get(self.selected_image_segment_index.unwrap())
+        {
+            let (height, width) = image_segment.dimensions();
+            self.texture = image_segment.as_rgb().ok().map(|rgb| {
+                ctx.load_texture(
+                    "image-segment",
+                    egui::ColorImage::from_rgb([width as _, height as _], &rgb),
+                    Default::default(),
+                )
+            })
         }
     }
 }
