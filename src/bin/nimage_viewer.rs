@@ -237,18 +237,19 @@ impl NImageViewer {
 
     fn update_image_segment_display(&mut self, ctx: &Context) {
         let image = self.nsif.as_ref().unwrap();
-        if let Some(image_segment) = image
-            .image_segments
-            .get(self.selected_image_segment_index.unwrap())
-        {
-            let (height, width) = image_segment.dimensions();
-            self.texture = image_segment.as_rgb().ok().map(|rgb| {
-                ctx.load_texture(
-                    "image-segment",
-                    egui::ColorImage::from_rgb([width as _, height as _], &rgb),
-                    Default::default(),
-                )
-            })
+        if let Some(selected_segment) = self.selected_image_segment_index {
+            if let Some(image_segment) = image.image_segments.get(selected_segment) {
+                let (height, width) = image_segment.dimensions();
+                self.texture = image_segment.as_rgb().ok().map(|rgb| {
+                    ctx.load_texture(
+                        "image-segment",
+                        egui::ColorImage::from_rgb([width as _, height as _], &rgb),
+                        Default::default(),
+                    )
+                })
+            }
+        } else {
+            self.texture = None;
         }
     }
 }
