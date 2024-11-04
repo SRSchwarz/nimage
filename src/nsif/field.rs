@@ -95,13 +95,13 @@ impl Display for Field {
             }
             Value::MultipleAlphanumeric(values) => {
                 for value in values {
-                    write!(f, "    {}: {}", self.name, value.value).unwrap();
+                    write!(f, "    {}: {}", self.name, value.value)?;
                 }
                 Ok(())
             }
             Value::MultipleNumeric(values) => {
                 for value in values {
-                    write!(f, "    {}: {}", self.name, value.value).unwrap();
+                    write!(f, "    {}: {}", self.name, value.value)?;
                 }
                 Ok(())
             }
@@ -111,7 +111,7 @@ impl Display for Field {
                     for inner_value in outer_value {
                         outer_s.push_str(&inner_value.value);
                     }
-                    write!(f, "    {}: {}", self.name, outer_s).unwrap();
+                    write!(f, "    {}: {}", self.name, outer_s)?;
                 }
                 Ok(())
             }
@@ -121,7 +121,7 @@ impl Display for Field {
                     for inner_value in outer_value {
                         outer_s.push_str(&inner_value.value);
                     }
-                    write!(f, "    {}: {}", self.name, outer_s).unwrap();
+                    write!(f, "    {}: {}", self.name, outer_s)?;
                 }
                 Ok(())
             }
