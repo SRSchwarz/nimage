@@ -122,7 +122,7 @@ impl FileHeader {
 
         file.read(&mut fhdr)?;
         let fhdr_value = parse_string_from_bytes(&fhdr)?;
-        if fhdr_value != "NITF".to_string() {
+        if !matches!(fhdr_value.as_str(), "NITF" | "NSIF") {
             return Err(Box::new(NsifError::FileMismatch));
         }
 
