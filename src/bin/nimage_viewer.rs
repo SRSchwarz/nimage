@@ -57,7 +57,7 @@ impl eframe::App for NImageViewer {
             ui.horizontal(|ui| {
                 if ui.button("Open File").clicked() {
                     if let Some(path) = rfd::FileDialog::new()
-                        .add_filter("NSIF files", &vec!["nsif", "nitf"])
+                        .add_filter("NSIF files", &vec!["nsif", "nitf", "ntf", "nsf"])
                         .pick_file()
                     {
                         self.load_nsif(&path, ctx);
