@@ -35,23 +35,21 @@ impl ImageSegment {
                 parse_number_from_string(&width.value).unwrap(),
             );
         }
-        panic!()
+        panic!() // TODO
     }
 
     pub fn as_rgb(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-        // TODO error handling, clone?
         if let Value::SingleAlphanumeric(ic) = &self.sub_header.ic.value {
             return match ic.value.as_str() {
-                "NC" => Ok(self.data.clone()),
                 "C3" => JpegDecoder::new(&self.data).decode().map_err(Into::into),
                 "C8" => jpeg2k::Image::from_bytes(&self.data.as_slice())
                     .and_then(|image| image.get_pixels(None))
                     .map_err(Into::into)
                     .map(|image_data| image_data.data),
-                _ => Err("Unsupported type")?,
+                _ => Err("Unsupported type")?, // TODO thiserror crate
             };
         }
-        panic!()
+        panic!() // TODO
     }
 }
 #[derive(Debug, Reflect)]
