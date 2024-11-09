@@ -1,3 +1,4 @@
+use super::error::NsifError;
 use super::{parse_number_from_bytes, parse_string_from_bytes, PrettyPrint};
 use crate::nsif::field::Field;
 use bevy_reflect::Reflect;
@@ -120,6 +121,11 @@ impl FileHeader {
         // xhd is dynamically sized
 
         file.read(&mut fhdr)?;
+        let fhdr_value = parse_string_from_bytes(&fhdr)?;
+        if fhdr_value != "NITF".to_string() {
+            return Err(Box::new(NsifError::FileMismatch));
+        }
+
         file.read(&mut fver)?;
         file.read(&mut clevel)?;
         file.read(&mut stype)?;

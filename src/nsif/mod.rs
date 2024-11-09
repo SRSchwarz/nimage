@@ -8,6 +8,7 @@ use std::{fmt::Display, fs::File};
 
 use self::field::Value;
 
+pub mod error;
 pub mod export;
 pub mod field;
 pub mod fileheader;
