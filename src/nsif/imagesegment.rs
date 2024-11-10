@@ -1,4 +1,5 @@
 use super::{parse_number_from_bytes, parse_string_from_bytes, PrettyPrint};
+use crate::nsif::error::NsifError;
 use crate::nsif::field::{Field, Value};
 use crate::nsif::parse_number_from_string;
 use bevy_reflect::Reflect;
@@ -41,17 +42,36 @@ impl ImageSegment {
     pub fn as_rgb(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
         if let Value::SingleAlphanumeric(ic) = &self.sub_header.ic.value {
             return match ic.value.as_str() {
-                "C3" => JpegDecoder::new(&self.data).decode().map_err(Into::into),
-                "C8" => jpeg2k::Image::from_bytes(&self.data.as_slice())
-                    .and_then(|image| image.get_pixels(None))
-                    .map_err(Into::into)
-                    .map(|image_data| image_data.data),
-                _ => Err("Unsupported type")?, // TODO thiserror crate
+                "NC" => self.handle_nc(),
+                "C3" => self.handle_c3(),
+                "C8" => self.handle_c8(),
+                _ => Err(Box::new(NsifError::IcNotSupported)),
             };
         }
-        panic!() // TODO
+        Err(Box::new(NsifError::ImageSegmentSubHeaderMalformed))
+    }
+
+    fn handle_nc(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        if let Value::SingleAlphanumeric(imode) = &self.sub_header.imode.value {
+            if imode.value.as_str() == "P" {
+                return Ok(self.data.clone());
+            }
+        }
+        return Err(Box::new(NsifError::ImodeNotSupported));
+    }
+
+    fn handle_c3(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        JpegDecoder::new(&self.data).decode().map_err(Into::into)
+    }
+
+    fn handle_c8(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        jpeg2k::Image::from_bytes(&self.data.as_slice())
+            .and_then(|image| image.get_pixels(None))
+            .map_err(Into::into)
+            .map(|image_data| image_data.data)
     }
 }
+
 #[derive(Debug, Reflect)]
 pub struct ImageSubheader {
     pub im: Field,

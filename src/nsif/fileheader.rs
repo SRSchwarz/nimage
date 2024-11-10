@@ -1,5 +1,8 @@
 use super::error::NsifError;
-use super::{parse_number_from_bytes, parse_string_from_bytes, PrettyPrint};
+use super::{
+    parse_number_from_bytes, parse_string_from_bytes, parse_unsigned_integers_from_byte,
+    PrettyPrint,
+};
 use crate::nsif::field::Field;
 use bevy_reflect::Reflect;
 use std::cmp::max;
@@ -311,7 +314,10 @@ impl FileHeader {
             fscop: Field::from_numeric("File Copy Number", parse_string_from_bytes(&fscop)?),
             fscpys: Field::from_numeric("File Number of Copies", parse_string_from_bytes(&fscpys)?),
             encryp: Field::from_numeric("Encryption", parse_string_from_bytes(&encryp)?),
-            fbkgc: Field::from_numeric("File Background Color", parse_string_from_bytes(&fbkgc)?),
+            fbkgc: Field::from_alphanumeric(
+                "File Background Color",
+                parse_unsigned_integers_from_byte(&fbkgc),
+            ),
             oname: Field::from_alphanumeric("Originator's Name", parse_string_from_bytes(&oname)?),
             ophone: Field::from_alphanumeric(
                 "Originator's Phone Number",

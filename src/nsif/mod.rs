@@ -132,6 +132,13 @@ pub fn parse_string_from_bytes(vec: &Vec<u8>) -> Result<String, Box<dyn std::err
     String::from_utf8(vec.clone()).map_err(Into::into)
 }
 
+pub fn parse_unsigned_integers_from_byte(vec: &Vec<u8>) -> String {
+    vec.iter()
+        .map(|byte| format!("0x{:02x}", byte))
+        .collect::<Vec<String>>()
+        .join(" ")
+}
+
 pub fn parse_number_from_bytes(vec: &Vec<u8>) -> Result<i32, Box<dyn std::error::Error>> {
     let s = parse_string_from_bytes(vec)?;
     parse_number_from_string(&s)
