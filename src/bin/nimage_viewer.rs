@@ -24,6 +24,7 @@ struct NImageViewer {
     nsif: Option<NSIF>,
     texture: Option<egui::TextureHandle>,
     initial_path: Option<PathBuf>,
+    file_name: Option<String>,
     transform: TSTransform,
     image_response: Option<Response>,
     selected_image_segment_index: Option<usize>,
@@ -39,6 +40,7 @@ impl Default for NImageViewer {
                 .collect::<Vec<String>>()
                 .get(1)
                 .and_then(|s| PathBuf::from_str(s.as_str()).ok()),
+            file_name: None,
             transform: TSTransform::default(),
             image_response: None,
             selected_image_segment_index: None,
@@ -52,7 +54,13 @@ impl eframe::App for NImageViewer {
         if let Some(path) = &self.initial_path.take() {
             self.load_nsif(path, ctx);
         }
-        Window::new("Menu").default_width(600.0).show(ctx, |ui| {
+        Window::new(
+            self.file_name
+                .clone()
+                .unwrap_or("NImage Viewer".to_string()),
+        )
+        .default_width(600.0)
+        .show(ctx, |ui| {
             ui.heading("File");
             ui.horizontal(|ui| {
                 if ui.button("Open File").clicked() {
@@ -228,6 +236,10 @@ impl NImageViewer {
     fn load_nsif(&mut self, path: &PathBuf, _ctx: &Context) {
         if let Ok(file) = fs::File::open(path) {
             if let Ok(image) = NSIF::parse(&file) {
+                self.file_name = path
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .map(|s| s.to_string());
                 if image.image_segments.len() > 0 {
                     self.selected_image_segment_index = Some(0);
                 } else {
