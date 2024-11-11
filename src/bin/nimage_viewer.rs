@@ -259,14 +259,17 @@ impl NImageViewer {
         if let Some(image) = self.nsif.as_ref() {
             if let Some(selected_segment) = self.selected_image_segment_index {
                 if let Some(image_segment) = image.image_segments.get(selected_segment) {
-                    let (height, width) = image_segment.dimensions();
-                    self.texture = image_segment.as_rgb().ok().map(|rgb| {
-                        ctx.load_texture(
-                            "image-segment",
-                            egui::ColorImage::from_rgb([width as _, height as _], &rgb),
-                            Default::default(),
-                        )
-                    })
+                    if let Ok((height, width)) = image_segment.dimensions() {
+                        if let Ok(rgb_data) = image_segment.as_rgb() {
+                            self.texture = Some(ctx.load_texture(
+                                "image-segment",
+                                egui::ColorImage::from_rgb([width as _, height as _], &rgb_data),
+                                Default::default(),
+                            ));
+                        } else {
+                            self.toasts.error("Failed to display image segment");
+                        }
+                    }
                 }
             } else {
                 self.texture = None;

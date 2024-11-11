@@ -27,14 +27,14 @@ impl ImageSegment {
         Ok(ImageSegment { sub_header, data })
     }
 
-    pub fn dimensions(&self) -> (i32, i32) {
+    pub fn dimensions(&self) -> Result<(i32, i32), Box<dyn std::error::Error>> {
         if let (Value::SingleNumeric(height), Value::SingleNumeric(width)) =
             (&self.sub_header.nrows.value, &self.sub_header.ncols.value)
         {
-            return (
-                parse_number_from_string(&height.value).unwrap(),
-                parse_number_from_string(&width.value).unwrap(),
-            );
+            return Ok((
+                parse_number_from_string(&height.value)?,
+                parse_number_from_string(&width.value)?,
+            ));
         }
         panic!() // TODO
     }
@@ -424,8 +424,8 @@ impl ImageSubheader {
                 "Image comments",
                 icoms
                     .iter()
-                    .map(|i| parse_string_from_bytes(i).unwrap())
-                    .collect(),
+                    .map(|i| parse_string_from_bytes(i))
+                    .collect::<Result<Vec<String>, _>>()?,
             ),
             ic: Field::from_alphanumeric("Image compression", parse_string_from_bytes(&ic)?),
             comrat: Field::from_alphanumeric(
@@ -441,42 +441,42 @@ impl ImageSubheader {
                 "Band Representations",
                 irepbands
                     .iter()
-                    .map(|i| parse_string_from_bytes(i).unwrap())
-                    .collect(),
+                    .map(|i| parse_string_from_bytes(i))
+                    .collect::<Result<Vec<String>, _>>()?,
             ),
             isubcats: Field::from_multiple_alphanumeric(
                 "Band Subcategories",
                 isubcats
                     .iter()
-                    .map(|i| parse_string_from_bytes(i).unwrap())
-                    .collect(),
+                    .map(|i| parse_string_from_bytes(i))
+                    .collect::<Result<Vec<String>, _>>()?,
             ),
             ifcs: Field::from_multiple_alphanumeric(
                 "Band Image Filter Condition",
                 ifcs.iter()
-                    .map(|i| parse_string_from_bytes(i).unwrap())
-                    .collect(),
+                    .map(|i| parse_string_from_bytes(i))
+                    .collect::<Result<Vec<String>, _>>()?,
             ),
             imflts: Field::from_multiple_alphanumeric(
                 "Band Standard Image Code",
                 imflts
                     .iter()
-                    .map(|i| parse_string_from_bytes(i).unwrap())
-                    .collect(),
+                    .map(|i| parse_string_from_bytes(i))
+                    .collect::<Result<Vec<String>, _>>()?,
             ),
             nlutss: Field::from_multiple_numeric(
                 "Number of LUTs",
                 nlutss
                     .iter()
-                    .map(|i| parse_string_from_bytes(i).unwrap())
-                    .collect(),
+                    .map(|i| parse_string_from_bytes(i))
+                    .collect::<Result<Vec<String>, _>>()?,
             ),
             neluts: Field::from_multiple_numeric(
                 "Number of LUT entries",
                 neluts
                     .iter()
-                    .map(|i| parse_string_from_bytes(i).unwrap())
-                    .collect(),
+                    .map(|i| parse_string_from_bytes(i))
+                    .collect::<Result<Vec<String>, _>>()?,
             ),
             lutdss: Field::from_nested_numeric(
                 "LUTs",

@@ -50,10 +50,10 @@ impl Field {
         }
     }
 
-    pub fn from_multiple_alphanumeric(name: &str, value: String) -> Field {
+    pub fn from_multiple_alphanumeric(name: &str, value: Vec<String>) -> Field {
         Field {
             name: name.to_owned(),
-            value: Value::SingleAlphanumeric(value.into()),
+            value: Value::MultipleAlphanumeric(value.into_iter().map(Into::into).collect()),
         }
     }
 
