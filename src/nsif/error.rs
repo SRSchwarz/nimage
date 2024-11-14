@@ -10,4 +10,6 @@ pub enum NsifError {
     IcNotSupported,
     #[error("The given image segment sub header is malformed")]
     ImageSegmentSubHeaderMalformed,
+    #[error("The given image segment has invalid dimensions")]
+    InvalidDimensions,
 }

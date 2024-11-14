@@ -3,7 +3,6 @@ use crate::nsif::error::NsifError;
 use crate::nsif::field::{Field, Value};
 use crate::nsif::parse_number_from_string;
 use bevy_reflect::Reflect;
-use core::panic;
 use std::cmp::max;
 use std::fmt::Display;
 use std::vec;
@@ -36,7 +35,7 @@ impl ImageSegment {
                 parse_number_from_string(&width.value)?,
             ));
         }
-        panic!() // TODO
+        return Err(Box::new(NsifError::InvalidDimensions));
     }
 
     pub fn as_rgb(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
