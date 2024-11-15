@@ -4,6 +4,7 @@ use field::Field;
 use fileheader::FileHeader;
 use imagesegment::ImageSegment;
 use std::collections::BTreeMap;
+use std::convert::identity;
 use std::{fmt::Display, fs::File};
 
 use self::field::Value;
@@ -99,7 +100,8 @@ impl NSIF {
         let reflected_fileheader: &dyn Struct = &self.file_header;
         let fileheader_fields = reflected_fileheader
             .iter_fields()
-            .map(|field| field.downcast_ref::<Field>().unwrap())
+            .map(|field| field.downcast_ref::<Field>())
+            .filter_map(identity)
             .collect();
         fields.insert(String::from("File Header"), fileheader_fields);
 
@@ -107,7 +109,8 @@ impl NSIF {
             let reflected_subheader: &dyn Struct = &image_segment.sub_header;
             let image_segment_fields = reflected_subheader
                 .iter_fields()
-                .map(|field| field.downcast_ref::<Field>().unwrap())
+                .map(|field| field.downcast_ref::<Field>())
+                .filter_map(identity)
                 .collect::<Vec<&Field>>();
             fields.insert(format!("Image Segment {}", i + 1), image_segment_fields);
         }

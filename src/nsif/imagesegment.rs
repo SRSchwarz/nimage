@@ -481,11 +481,7 @@ impl ImageSubheader {
                 "LUTs",
                 lutdss
                     .iter()
-                    .map(|l| {
-                        l.iter()
-                            .map(|l| parse_string_from_bytes(l).unwrap())
-                            .collect()
-                    })
+                    .filter_map(|l| l.iter().map(|l| parse_string_from_bytes(l).ok()).collect())
                     .collect(),
             ),
 
