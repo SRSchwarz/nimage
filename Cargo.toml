@@ -20,3 +20,17 @@ thiserror = "2.0.1"
 
 [profile.dev.package.zune-jpeg]
 opt-level = 3
+
+[package.metadata.generate-rpm]
+name = "NImage"
+summary = "A NSIF viewer"
+license = "MIT"
+vendor = "Simon Schwarz"
+url = "https://github.com/SRSchwarz/nimage"
+icon = "assets/nimage-logo-128x128.png"
+assets = [
+    { dest = "/usr/bin/nimage", source = "target/release/nimage", mode = "0755" },
+    { dest = "/usr/bin/nimage_viewer", source = "target/release/nimage_viewer", mode = "0755" },
+    { dest = "/usr/share/applications/nimage.desktop", source = "assets/nimage.desktop", mode = "0644" },
+    { dest = "/usr/share/icons/hicolor/128x128/apps/nimage.png", source = "assets/nimage-logo-128x128.png", mode = "0644" },
+]

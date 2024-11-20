@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=NImage
+Comment=A NSIF Viewer
+Exec=/usr/bin/nimage_viewer
+Icon=nimage
+Terminal=false
+Type=Application
+Categories=Utility
