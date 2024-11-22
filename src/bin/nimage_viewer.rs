@@ -10,7 +10,7 @@ use std::{env, fs, path::PathBuf, str::FromStr};
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_fullscreen(true),
+        viewport: egui::ViewportBuilder::default(),
         ..Default::default()
     };
     eframe::run_native(
@@ -86,6 +86,9 @@ impl eframe::App for NImageViewer {
                             }
                         }
                     }
+                }
+                if ui.button("Quit").clicked() {
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                 }
             });
             ui.allocate_space(egui::Vec2::new(0.0, 2.0));
