@@ -1,16 +1,22 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 use eframe::{
-    egui::{self, load::SizedTexture, scroll_area::ScrollBarVisibility, Context, Response, Window},
+    egui::{
+        self, load::SizedTexture, scroll_area::ScrollBarVisibility, Context, IconData, Response,
+        Window,
+    },
     emath::TSTransform,
 };
 use egui_notify::Toasts;
+use image::ImageReader;
 use nimage::nsif::{export::export_to_jpeg, field::Value, NSIF};
 use std::{env, fs, path::PathBuf, str::FromStr};
+use std::{io::Cursor, sync::Arc};
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default(),
+        viewport: egui::ViewportBuilder::default()
+            .with_icon(load_icon().unwrap_or(Arc::new(IconData::default()))),
         ..Default::default()
     };
     eframe::run_native(
@@ -18,6 +24,21 @@ fn main() -> Result<(), eframe::Error> {
         options,
         Box::new(|_| Ok(Box::<NImageViewer>::default())),
     )
+}
+
+fn load_icon() -> Result<Arc<IconData>, Box<dyn std::error::Error>> {
+    let icon_bytes = include_bytes!("../../assets/nimage-logo-128x128.png");
+    let image = ImageReader::new(Cursor::new(icon_bytes))
+        .with_guessed_format()?
+        .decode()?
+        .to_rgba8();
+
+    let (width, height) = image.dimensions();
+    Ok(Arc::new(IconData {
+        rgba: image.into_raw(),
+        width,
+        height,
+    }))
 }
 
 struct NImageViewer {
