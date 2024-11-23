@@ -27,7 +27,7 @@ impl From<String> for AlphanumericValue {
     // TODO will probably have to be discarded if range info
     // is required for editing functionality
     fn from(value: String) -> Self {
-        AlphanumericValue { value }
+        Self { value }
     }
 }
 
@@ -38,40 +38,40 @@ pub struct NumericValue {
 
 impl From<String> for NumericValue {
     fn from(value: String) -> Self {
-        NumericValue { value }
+        Self { value }
     }
 }
 
 impl Field {
-    pub fn from_alphanumeric(name: &str, value: String) -> Field {
+    pub fn from_alphanumeric(name: &str, value: String) -> Self {
         Field {
             name: name.to_owned(),
             value: Value::SingleAlphanumeric(value.into()),
         }
     }
 
-    pub fn from_multiple_alphanumeric(name: &str, value: Vec<String>) -> Field {
+    pub fn from_multiple_alphanumeric(name: &str, value: Vec<String>) -> Self {
         Field {
             name: name.to_owned(),
             value: Value::MultipleAlphanumeric(value.into_iter().map(Into::into).collect()),
         }
     }
 
-    pub fn from_numeric(name: &str, value: String) -> Field {
+    pub fn from_numeric(name: &str, value: String) -> Self {
         Field {
             name: name.to_owned(),
             value: Value::SingleNumeric(value.into()),
         }
     }
 
-    pub fn from_multiple_numeric(name: &str, value: Vec<String>) -> Field {
+    pub fn from_multiple_numeric(name: &str, value: Vec<String>) -> Self {
         Field {
             name: name.to_owned(),
             value: Value::MultipleNumeric(value.into_iter().map(Into::into).collect()),
         }
     }
 
-    pub fn from_nested_numeric(name: &str, value: Vec<Vec<String>>) -> Field {
+    pub fn from_nested_numeric(name: &str, value: Vec<Vec<String>>) -> Self {
         Field {
             name: name.to_owned(),
             value: Value::NestedNumeric(

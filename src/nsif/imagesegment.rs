@@ -19,10 +19,10 @@ impl ImageSegment {
         mut file: &File,
         _subheader_length: i32,
         segment_length: i32,
-    ) -> Result<ImageSegment, Box<dyn std::error::Error>> {
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         let sub_header = ImageSubheader::parse(file)?;
         let mut data = vec![0; segment_length as usize];
-        file.read(&mut data)?;
+        file.read_exact(&mut data)?;
         Ok(ImageSegment { sub_header, data })
     }
 
@@ -35,7 +35,7 @@ impl ImageSegment {
                 parse_number_from_string(&width.value)?,
             ));
         }
-        return Err(Box::new(NsifError::InvalidDimensions));
+        Err(Box::new(NsifError::InvalidDimensions))
     }
 
     pub fn as_rgb(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
@@ -56,7 +56,7 @@ impl ImageSegment {
                 return Ok(self.data.clone());
             }
         }
-        return Err(Box::new(NsifError::ImodeNotSupported));
+        Err(Box::new(NsifError::ImodeNotSupported))
     }
 
     fn handle_c3(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
@@ -64,7 +64,7 @@ impl ImageSegment {
     }
 
     fn handle_c8(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-        jpeg2k::Image::from_bytes(&self.data.as_slice())
+        jpeg2k::Image::from_bytes(self.data.as_slice())
             .and_then(|image| image.get_pixels(None))
             .map_err(Into::into)
             .map(|image_data| image_data.data)
@@ -201,57 +201,57 @@ impl ImageSubheader {
         let mut ixsofl = vec![0; 3];
         // ixshd is dynamically sized
 
-        file.read(&mut im)?;
-        file.read(&mut iid1)?;
-        file.read(&mut idatim)?;
-        file.read(&mut tgtid)?;
-        file.read(&mut iid2)?;
-        file.read(&mut isclas)?;
-        file.read(&mut isclsy)?;
-        file.read(&mut iscode)?;
-        file.read(&mut isctlh)?;
-        file.read(&mut isrel)?;
-        file.read(&mut isdctp)?;
-        file.read(&mut isdcdt)?;
-        file.read(&mut isdcxm)?;
-        file.read(&mut isdg)?;
-        file.read(&mut isdgt)?;
-        file.read(&mut iscltx)?;
-        file.read(&mut iscatp)?;
-        file.read(&mut iscaut)?;
-        file.read(&mut iscrsn)?;
-        file.read(&mut issrdt)?;
-        file.read(&mut isctln)?;
-        file.read(&mut encryp)?;
-        file.read(&mut isorce)?;
-        file.read(&mut nrows)?;
-        file.read(&mut ncols)?;
-        file.read(&mut pvtype)?;
-        file.read(&mut irep)?;
-        file.read(&mut icat)?;
-        file.read(&mut abpp)?;
-        file.read(&mut pjust)?;
-        file.read(&mut icords)?;
-        file.read(&mut igeolo)?;
+        file.read_exact(&mut im)?;
+        file.read_exact(&mut iid1)?;
+        file.read_exact(&mut idatim)?;
+        file.read_exact(&mut tgtid)?;
+        file.read_exact(&mut iid2)?;
+        file.read_exact(&mut isclas)?;
+        file.read_exact(&mut isclsy)?;
+        file.read_exact(&mut iscode)?;
+        file.read_exact(&mut isctlh)?;
+        file.read_exact(&mut isrel)?;
+        file.read_exact(&mut isdctp)?;
+        file.read_exact(&mut isdcdt)?;
+        file.read_exact(&mut isdcxm)?;
+        file.read_exact(&mut isdg)?;
+        file.read_exact(&mut isdgt)?;
+        file.read_exact(&mut iscltx)?;
+        file.read_exact(&mut iscatp)?;
+        file.read_exact(&mut iscaut)?;
+        file.read_exact(&mut iscrsn)?;
+        file.read_exact(&mut issrdt)?;
+        file.read_exact(&mut isctln)?;
+        file.read_exact(&mut encryp)?;
+        file.read_exact(&mut isorce)?;
+        file.read_exact(&mut nrows)?;
+        file.read_exact(&mut ncols)?;
+        file.read_exact(&mut pvtype)?;
+        file.read_exact(&mut irep)?;
+        file.read_exact(&mut icat)?;
+        file.read_exact(&mut abpp)?;
+        file.read_exact(&mut pjust)?;
+        file.read_exact(&mut icords)?;
+        file.read_exact(&mut igeolo)?;
 
-        file.read(&mut nicom)?;
+        file.read_exact(&mut nicom)?;
         let number_of_image_comments = parse_number_from_bytes(&nicom).unwrap_or(0);
         for _ in 0..number_of_image_comments {
             let mut icom = vec![0; 80];
-            file.read(&mut icom)?;
+            file.read_exact(&mut icom)?;
             icoms.push(icom);
         }
 
-        file.read(&mut ic)?;
+        file.read_exact(&mut ic)?;
         let ic_value = String::from_utf8(ic.clone())?;
         if ic_value != "NC" && ic_value != "NM" {
-            file.read(&mut comrat)?;
+            file.read_exact(&mut comrat)?;
         }
 
-        file.read(&mut nbands)?;
+        file.read_exact(&mut nbands)?;
         let nbands_value = parse_number_from_bytes(&nbands).unwrap_or(0);
         if nbands_value == 0 {
-            file.read(&mut xbands)?;
+            file.read_exact(&mut xbands)?;
         }
         let number_of_bands = if nbands_value > 0 {
             nbands_value
@@ -268,19 +268,19 @@ impl ImageSubheader {
             let mut nelut = vec![0; 5];
             let mut lutds = Vec::new();
 
-            file.read(&mut irepband)?;
-            file.read(&mut isubcat)?;
-            file.read(&mut ifc)?;
-            file.read(&mut imflt)?;
-            file.read(&mut nluts)?;
+            file.read_exact(&mut irepband)?;
+            file.read_exact(&mut isubcat)?;
+            file.read_exact(&mut ifc)?;
+            file.read_exact(&mut imflt)?;
+            file.read_exact(&mut nluts)?;
             let number_of_lut_entries = parse_number_from_bytes(&nluts).unwrap_or(0);
             if number_of_lut_entries != 0 {
-                file.read(&mut nelut)?;
+                file.read_exact(&mut nelut)?;
             }
             let lut_entry_size = parse_number_from_bytes(&nelut).unwrap_or(0);
             for _ in 0..number_of_lut_entries {
                 let mut lutd = vec![0; lut_entry_size as usize];
-                file.read(&mut lutd)?;
+                file.read_exact(&mut lutd)?;
                 lutds.push(lutd);
             }
 
@@ -293,33 +293,33 @@ impl ImageSubheader {
             lutdss.push(lutds);
         }
 
-        file.read(&mut isync)?;
-        file.read(&mut imode)?;
-        file.read(&mut nbpr)?;
-        file.read(&mut nbpc)?;
-        file.read(&mut nppbh)?;
-        file.read(&mut nppbv)?;
-        file.read(&mut nbpp)?;
-        file.read(&mut idlvl)?;
-        file.read(&mut ialvl)?;
-        file.read(&mut iloc)?;
-        file.read(&mut imag)?;
-        file.read(&mut udidl)?;
+        file.read_exact(&mut isync)?;
+        file.read_exact(&mut imode)?;
+        file.read_exact(&mut nbpr)?;
+        file.read_exact(&mut nbpc)?;
+        file.read_exact(&mut nppbh)?;
+        file.read_exact(&mut nppbv)?;
+        file.read_exact(&mut nbpp)?;
+        file.read_exact(&mut idlvl)?;
+        file.read_exact(&mut ialvl)?;
+        file.read_exact(&mut iloc)?;
+        file.read_exact(&mut imag)?;
+        file.read_exact(&mut udidl)?;
         let udid_length = max(parse_number_from_bytes(&udidl).unwrap_or(3) - 3, 0);
         let mut udid = vec![0; udid_length as usize];
         if udid_length != 0 {
-            file.read(&mut udofl)?;
-            file.read(&mut udid)?;
+            file.read_exact(&mut udofl)?;
+            file.read_exact(&mut udid)?;
         }
-        file.read(&mut ixshdl)?;
+        file.read_exact(&mut ixshdl)?;
         let ixshdl_length = parse_number_from_bytes(&ixshdl).unwrap_or(0);
         if ixshdl_length != 0 {
-            file.read(&mut ixsofl)?;
+            file.read_exact(&mut ixsofl)?;
         }
         let ixsofl_length = max(parse_number_from_bytes(&ixsofl).unwrap_or(3) - 3, 0);
         let mut ixshd = vec![0; ixsofl_length as usize];
         if ixsofl_length != 0 {
-            file.read(&mut ixshd)?;
+            file.read_exact(&mut ixshd)?;
         }
 
         Ok(ImageSubheader {
@@ -423,7 +423,7 @@ impl ImageSubheader {
                 "Image comments",
                 icoms
                     .iter()
-                    .map(|i| parse_string_from_bytes(i))
+                    .map(parse_string_from_bytes)
                     .collect::<Result<Vec<String>, _>>()?,
             ),
             ic: Field::from_alphanumeric("Image compression", parse_string_from_bytes(&ic)?),
@@ -440,41 +440,41 @@ impl ImageSubheader {
                 "Band Representations",
                 irepbands
                     .iter()
-                    .map(|i| parse_string_from_bytes(i))
+                    .map(parse_string_from_bytes)
                     .collect::<Result<Vec<String>, _>>()?,
             ),
             isubcats: Field::from_multiple_alphanumeric(
                 "Band Subcategories",
                 isubcats
                     .iter()
-                    .map(|i| parse_string_from_bytes(i))
+                    .map(parse_string_from_bytes)
                     .collect::<Result<Vec<String>, _>>()?,
             ),
             ifcs: Field::from_multiple_alphanumeric(
                 "Band Image Filter Condition",
                 ifcs.iter()
-                    .map(|i| parse_string_from_bytes(i))
+                    .map(parse_string_from_bytes)
                     .collect::<Result<Vec<String>, _>>()?,
             ),
             imflts: Field::from_multiple_alphanumeric(
                 "Band Standard Image Code",
                 imflts
                     .iter()
-                    .map(|i| parse_string_from_bytes(i))
+                    .map(parse_string_from_bytes)
                     .collect::<Result<Vec<String>, _>>()?,
             ),
             nlutss: Field::from_multiple_numeric(
                 "Number of LUTs",
                 nlutss
                     .iter()
-                    .map(|i| parse_string_from_bytes(i))
+                    .map(parse_string_from_bytes)
                     .collect::<Result<Vec<String>, _>>()?,
             ),
             neluts: Field::from_multiple_numeric(
                 "Number of LUT entries",
                 neluts
                     .iter()
-                    .map(|i| parse_string_from_bytes(i))
+                    .map(parse_string_from_bytes)
                     .collect::<Result<Vec<String>, _>>()?,
             ),
             lutdss: Field::from_nested_numeric(

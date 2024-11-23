@@ -129,7 +129,7 @@ pub struct ExportArgs {
     pub segment_position: usize,
 }
 
-#[derive(Debug, Clone, Default, ValueEnum, Display, PartialEq)]
+#[derive(Debug, Clone, Default, ValueEnum, Display, PartialEq, Eq)]
 #[strum(serialize_all = "lowercase")]
 pub enum SegmentTypeArg {
     #[default]

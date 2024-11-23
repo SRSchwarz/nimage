@@ -4,7 +4,6 @@ use field::Field;
 use fileheader::FileHeader;
 use imagesegment::ImageSegment;
 use std::collections::BTreeMap;
-use std::convert::identity;
 use std::{fmt::Display, fs::File};
 
 use self::field::Value;
@@ -68,7 +67,7 @@ struct DataExtensionSegment {}
 struct ReservedExtensionSegment {}
 */
 impl NSIF {
-    pub fn parse(file: &File) -> Result<NSIF, Box<dyn std::error::Error>> {
+    pub fn parse(file: &File) -> Result<Self, Box<dyn std::error::Error>> {
         let file_header = FileHeader::parse(file)?;
         let mut image_segments = Vec::new();
 
@@ -100,8 +99,7 @@ impl NSIF {
         let reflected_fileheader: &dyn Struct = &self.file_header;
         let fileheader_fields = reflected_fileheader
             .iter_fields()
-            .map(|field| field.downcast_ref::<Field>())
-            .filter_map(identity)
+            .filter_map(|field| field.downcast_ref::<Field>())
             .collect();
         fields.insert(String::from("File Header"), fileheader_fields);
 
@@ -109,8 +107,7 @@ impl NSIF {
             let reflected_subheader: &dyn Struct = &image_segment.sub_header;
             let image_segment_fields = reflected_subheader
                 .iter_fields()
-                .map(|field| field.downcast_ref::<Field>())
-                .filter_map(identity)
+                .filter_map(|field| field.downcast_ref::<Field>())
                 .collect::<Vec<&Field>>();
             fields.insert(format!("Image Segment {}", i + 1), image_segment_fields);
         }
@@ -121,10 +118,10 @@ impl NSIF {
 
 impl Display for NSIF {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}\n", "File Header:")?;
-        write!(f, "{}\n", self.file_header)?;
+        writeln!(f, "File Header:")?;
+        writeln!(f, "{}", self.file_header)?;
         for (i, image_segment) in self.image_segments.iter().enumerate() {
-            write!(f, "{} {}:\n", "Image Segment", (i + 1).to_string())?;
+            writeln!(f, "Image Segment {}:", (i + 1))?;
             write!(f, "{}", image_segment)?;
         }
         Ok(())
@@ -135,7 +132,7 @@ pub fn parse_string_from_bytes(vec: &Vec<u8>) -> Result<String, Box<dyn std::err
     String::from_utf8(vec.clone()).map_err(Into::into)
 }
 
-pub fn parse_unsigned_integers_from_byte(vec: &Vec<u8>) -> String {
+pub fn parse_unsigned_integers_from_byte(vec: &[u8]) -> String {
     vec.iter()
         .map(|byte| format!("0x{:02x}", byte))
         .collect::<Vec<String>>()
@@ -147,7 +144,7 @@ pub fn parse_number_from_bytes(vec: &Vec<u8>) -> Result<i32, Box<dyn std::error:
     parse_number_from_string(&s)
 }
 
-pub fn parse_number_from_string(s: &String) -> Result<i32, Box<dyn std::error::Error>> {
+pub fn parse_number_from_string(s: &str) -> Result<i32, Box<dyn std::error::Error>> {
     let s = s.trim_start_matches('0').to_owned();
     if s.is_empty() {
         Ok(0)

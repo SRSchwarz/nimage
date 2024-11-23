@@ -2,8 +2,8 @@
 
 use eframe::{
     egui::{
-        self, load::SizedTexture, scroll_area::ScrollBarVisibility, Context, IconData, Response,
-        Window,
+        self, load::SizedTexture, scroll_area::ScrollBarVisibility, Context, IconData, InputState,
+        Response, TextureOptions, Window,
     },
     emath::TSTransform,
 };
@@ -16,7 +16,7 @@ use std::{io::Cursor, sync::Arc};
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_icon(load_icon().unwrap_or(Arc::new(IconData::default()))),
+            .with_icon(load_icon().unwrap_or_else(|_| Arc::new(IconData::default()))),
         ..Default::default()
     };
     eframe::run_native(
@@ -54,7 +54,7 @@ struct NImageViewer {
 }
 impl Default for NImageViewer {
     fn default() -> Self {
-        NImageViewer {
+        Self {
             nsif: None,
             texture: None,
             initial_path: env::args()
@@ -78,7 +78,7 @@ impl eframe::App for NImageViewer {
         Window::new(
             self.file_name
                 .clone()
-                .unwrap_or("NImage Viewer".to_string()),
+                .unwrap_or_else(|| "NImage Viewer".to_string()),
         )
         .default_width(600.0)
         .show(ctx, |ui| {
@@ -86,7 +86,7 @@ impl eframe::App for NImageViewer {
             ui.horizontal(|ui| {
                 if ui.button("Open File").clicked() {
                     if let Some(path) = rfd::FileDialog::new()
-                        .add_filter("NSIF files", &vec!["nsif", "nitf", "ntf", "nsf"])
+                        .add_filter("NSIF files", &["nsif", "nitf", "ntf", "nsf"])
                         .pick_file()
                     {
                         self.load_nsif(&path, ctx);
@@ -95,12 +95,17 @@ impl eframe::App for NImageViewer {
                 if let Some(current_segment) = self.selected_image_segment_index {
                     if ui.button("Export Current Segment").clicked() {
                         if let Some(path) = rfd::FileDialog::new().save_file() {
-                            if let Some(_) = self.nsif.as_ref().and_then(|image| {
-                                image
-                                    .image_segments
-                                    .get(current_segment)
-                                    .and_then(|segment| export_to_jpeg(segment, path).err())
-                            }) {
+                            if self
+                                .nsif
+                                .as_ref()
+                                .and_then(|image| {
+                                    image
+                                        .image_segments
+                                        .get(current_segment)
+                                        .and_then(|segment| export_to_jpeg(segment, path).err())
+                                })
+                                .is_some()
+                            {
                                 self.toasts.error("Export failed.");
                             } else {
                                 self.toasts.success("Export successful.");
@@ -204,7 +209,7 @@ impl eframe::App for NImageViewer {
             if let Some(pointer) = ui.ctx().input(|i| i.pointer.hover_pos()) {
                 if response.hovered() {
                     let pointer_in_layer = transform.inverse() * pointer;
-                    let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
+                    let zoom_delta = ui.ctx().input(InputState::zoom_delta);
                     let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta);
                     self.transform = self.transform
                         * TSTransform::from_translation(pointer_in_layer.to_vec2())
@@ -215,7 +220,7 @@ impl eframe::App for NImageViewer {
                 if let Some(r) = &self.image_response {
                     if r.hovered() {
                         let pointer_in_layer = transform.inverse() * pointer;
-                        let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
+                        let zoom_delta = ui.ctx().input(InputState::zoom_delta);
                         let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta);
                         self.transform = self.transform
                             * TSTransform::from_translation(pointer_in_layer.to_vec2())
@@ -235,16 +240,12 @@ impl eframe::App for NImageViewer {
                         .stroke(ui.ctx().style().visuals.window_stroke)
                         .fill(ui.style().visuals.panel_fill)
                         .show(ui, |ui| {
-                            self.image_response = self.texture.as_ref().and_then(|texture| {
-                                Some(
-                                    ui.add(
-                                        egui::Image::from_texture(SizedTexture::from_handle(
-                                            texture,
-                                        ))
+                            self.image_response = self.texture.as_ref().map(|texture| {
+                                ui.add(
+                                    egui::Image::from_texture(SizedTexture::from_handle(texture))
                                         .fit_to_exact_size(rect.size()),
-                                    ),
                                 )
-                            })
+                            });
                         });
                 })
                 .response
@@ -263,11 +264,11 @@ impl NImageViewer {
                 self.file_name = path
                     .file_name()
                     .and_then(|s| s.to_str())
-                    .map(|s| s.to_string());
-                if image.image_segments.len() > 0 {
-                    self.selected_image_segment_index = Some(0);
-                } else {
+                    .map(ToString::to_string);
+                if image.image_segments.is_empty() {
                     self.selected_image_segment_index = None;
+                } else {
+                    self.selected_image_segment_index = Some(0);
                 }
                 self.nsif = Some(image);
             } else {
@@ -275,7 +276,7 @@ impl NImageViewer {
                 self.texture = None;
                 self.toasts.error("Failed to parse given file");
             }
-            self.image_was_updated = true
+            self.image_was_updated = true;
         }
     }
 
@@ -288,7 +289,7 @@ impl NImageViewer {
                             self.texture = Some(ctx.load_texture(
                                 "image-segment",
                                 egui::ColorImage::from_rgb([width as _, height as _], &rgb_data),
-                                Default::default(),
+                                TextureOptions::default(),
                             ));
                         } else {
                             self.toasts.error("Failed to display image segment");

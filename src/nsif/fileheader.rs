@@ -7,8 +7,8 @@ use crate::nsif::field::Field;
 use bevy_reflect::Reflect;
 use std::cmp::max;
 use std::fmt::Display;
+use std::vec;
 use std::{fs::File, io::Read};
-use std::{usize, vec};
 
 #[derive(Debug, Reflect)]
 pub struct FileHeader {
@@ -68,7 +68,7 @@ pub struct FileHeader {
 }
 
 impl FileHeader {
-    pub fn parse(mut file: &File) -> Result<FileHeader, Box<dyn std::error::Error>> {
+    pub fn parse(mut file: &File) -> Result<Self, Box<dyn std::error::Error>> {
         let mut fhdr = vec![0; 4];
         let mut fver = vec![0; 5];
         let mut clevel = vec![0; 2];
@@ -123,124 +123,124 @@ impl FileHeader {
         let mut xhdlofl = vec![0; 3];
         // xhd is dynamically sized
 
-        file.read(&mut fhdr)?;
+        file.read_exact(&mut fhdr)?;
         let fhdr_value = parse_string_from_bytes(&fhdr)?;
         if !matches!(fhdr_value.as_str(), "NITF" | "NSIF") {
             return Err(Box::new(NsifError::FileMismatch));
         }
 
-        file.read(&mut fver)?;
-        file.read(&mut clevel)?;
-        file.read(&mut stype)?;
-        file.read(&mut ostaid)?;
-        file.read(&mut fdt)?;
-        file.read(&mut ftitle)?;
-        file.read(&mut fsclas)?;
-        file.read(&mut fsclsy)?;
-        file.read(&mut fscode)?;
-        file.read(&mut fsctlh)?;
-        file.read(&mut fsrel)?;
-        file.read(&mut fsdctp)?;
-        file.read(&mut fsdcdt)?;
-        file.read(&mut fsdcxm)?;
-        file.read(&mut fsdg)?;
-        file.read(&mut fsdgdt)?;
-        file.read(&mut fscltx)?;
-        file.read(&mut fscatp)?;
-        file.read(&mut fscaut)?;
-        file.read(&mut fscrsn)?;
-        file.read(&mut fssrdt)?;
-        file.read(&mut fsctln)?;
-        file.read(&mut fscop)?;
-        file.read(&mut fscpys)?;
-        file.read(&mut encryp)?;
-        file.read(&mut fbkgc)?;
-        file.read(&mut oname)?;
-        file.read(&mut ophone)?;
-        file.read(&mut fl)?;
-        file.read(&mut hl)?;
+        file.read_exact(&mut fver)?;
+        file.read_exact(&mut clevel)?;
+        file.read_exact(&mut stype)?;
+        file.read_exact(&mut ostaid)?;
+        file.read_exact(&mut fdt)?;
+        file.read_exact(&mut ftitle)?;
+        file.read_exact(&mut fsclas)?;
+        file.read_exact(&mut fsclsy)?;
+        file.read_exact(&mut fscode)?;
+        file.read_exact(&mut fsctlh)?;
+        file.read_exact(&mut fsrel)?;
+        file.read_exact(&mut fsdctp)?;
+        file.read_exact(&mut fsdcdt)?;
+        file.read_exact(&mut fsdcxm)?;
+        file.read_exact(&mut fsdg)?;
+        file.read_exact(&mut fsdgdt)?;
+        file.read_exact(&mut fscltx)?;
+        file.read_exact(&mut fscatp)?;
+        file.read_exact(&mut fscaut)?;
+        file.read_exact(&mut fscrsn)?;
+        file.read_exact(&mut fssrdt)?;
+        file.read_exact(&mut fsctln)?;
+        file.read_exact(&mut fscop)?;
+        file.read_exact(&mut fscpys)?;
+        file.read_exact(&mut encryp)?;
+        file.read_exact(&mut fbkgc)?;
+        file.read_exact(&mut oname)?;
+        file.read_exact(&mut ophone)?;
+        file.read_exact(&mut fl)?;
+        file.read_exact(&mut hl)?;
 
-        file.read(&mut numi)?;
+        file.read_exact(&mut numi)?;
         let number_of_image_segments = parse_number_from_bytes(&numi).unwrap_or(0);
 
         for _ in 0..number_of_image_segments {
             let mut lish = vec![0; 6];
             let mut li = vec![0; 10];
-            file.read(&mut lish)?;
-            file.read(&mut li)?;
+            file.read_exact(&mut lish)?;
+            file.read_exact(&mut li)?;
             lishs.push(lish);
             lis.push(li);
         }
 
-        file.read(&mut nums)?;
+        file.read_exact(&mut nums)?;
         let number_of_graphic_segments = parse_number_from_bytes(&nums).unwrap_or(0);
 
         for _ in 0..number_of_graphic_segments {
             let mut lssh = vec![0; 4];
             let mut ls = vec![0; 6];
-            file.read(&mut lssh)?;
-            file.read(&mut ls)?;
+            file.read_exact(&mut lssh)?;
+            file.read_exact(&mut ls)?;
             lsshs.push(lssh);
             lss.push(ls);
         }
 
-        file.read(&mut numx)?;
+        file.read_exact(&mut numx)?;
 
-        file.read(&mut numt)?;
+        file.read_exact(&mut numt)?;
         let number_of_text_segments = parse_number_from_bytes(&numt).unwrap_or(0);
 
         for _ in 0..number_of_text_segments {
             let mut ltsh = vec![0; 4];
             let mut lt = vec![0; 5];
-            file.read(&mut ltsh)?;
-            file.read(&mut lt)?;
+            file.read_exact(&mut ltsh)?;
+            file.read_exact(&mut lt)?;
             ltshs.push(ltsh);
             lts.push(lt);
         }
 
-        file.read(&mut numdes)?;
+        file.read_exact(&mut numdes)?;
         let number_of_data_extension_segments = parse_number_from_bytes(&numdes).unwrap_or(0);
 
         for _ in 0..number_of_data_extension_segments {
             let mut ldsh = vec![0; 4];
             let mut ld = vec![0; 9];
-            file.read(&mut ldsh)?;
-            file.read(&mut ld)?;
+            file.read_exact(&mut ldsh)?;
+            file.read_exact(&mut ld)?;
             ldshs.push(ldsh);
             lds.push(ld);
         }
 
-        file.read(&mut numres)?;
+        file.read_exact(&mut numres)?;
         let number_of_reserved_extension_segments = parse_number_from_bytes(&numres).unwrap_or(0);
 
         for _ in 0..number_of_reserved_extension_segments {
             let mut lresh = vec![0; 4];
             let mut lre = vec![0; 7];
-            file.read(&mut lresh)?;
-            file.read(&mut lre)?;
+            file.read_exact(&mut lresh)?;
+            file.read_exact(&mut lre)?;
             lreshs.push(lresh);
             lres.push(lre);
         }
 
-        file.read(&mut udhdl)?;
+        file.read_exact(&mut udhdl)?;
         let udhd_length = max(parse_number_from_bytes(&udhdl).unwrap_or(3) - 3, 0);
 
         if udhd_length != 0 {
-            file.read(&mut udhofl)?;
+            file.read_exact(&mut udhofl)?;
         }
 
         let mut udhd = vec![0; udhd_length as usize];
-        file.read(&mut udhd)?;
+        file.read_exact(&mut udhd)?;
 
-        file.read(&mut xhdl)?;
+        file.read_exact(&mut xhdl)?;
         let xhd_length = max(parse_number_from_bytes(&xhdl).unwrap_or(3) - 3, 0);
 
         if xhd_length != 0 {
-            file.read(&mut xhdlofl)?;
+            file.read_exact(&mut xhdlofl)?;
         }
 
         let mut xhd = vec![0; xhd_length as usize];
-        file.read(&mut xhd)?;
+        file.read_exact(&mut xhd)?;
 
         Ok(FileHeader {
             fhdr: Field::from_alphanumeric("File Profile Name", parse_string_from_bytes(&fhdr)?),
@@ -330,13 +330,13 @@ impl FileHeader {
                 "Length of Image Subheader",
                 lishs
                     .iter()
-                    .map(|l| parse_string_from_bytes(l))
+                    .map(parse_string_from_bytes)
                     .collect::<Result<Vec<String>, _>>()?,
             ),
             lis: Field::from_multiple_numeric(
                 "Length of Image Segment",
                 lis.iter()
-                    .map(|l| parse_string_from_bytes(l))
+                    .map(parse_string_from_bytes)
                     .collect::<Result<Vec<String>, _>>()?,
             ),
             nums: Field::from_numeric(
@@ -347,13 +347,13 @@ impl FileHeader {
                 "Length of Graphic Subheader",
                 lsshs
                     .iter()
-                    .map(|l| parse_string_from_bytes(l))
+                    .map(parse_string_from_bytes)
                     .collect::<Result<Vec<String>, _>>()?,
             ),
             lss: Field::from_multiple_numeric(
                 "Length of Graphic Segment",
                 lss.iter()
-                    .map(|l| parse_string_from_bytes(l))
+                    .map(parse_string_from_bytes)
                     .collect::<Result<Vec<String>, _>>()?,
             ),
             numx: Field::from_numeric("Reserved for Future Use", parse_string_from_bytes(&numx)?),
@@ -362,13 +362,13 @@ impl FileHeader {
                 "Length of Text Subheader",
                 ltshs
                     .iter()
-                    .map(|l| parse_string_from_bytes(l))
+                    .map(parse_string_from_bytes)
                     .collect::<Result<Vec<String>, _>>()?,
             ),
             lts: Field::from_multiple_numeric(
                 "Length of Text Segment",
                 lts.iter()
-                    .map(|l| parse_string_from_bytes(l))
+                    .map(parse_string_from_bytes)
                     .collect::<Result<Vec<String>, _>>()?,
             ),
             numdes: Field::from_numeric(
@@ -379,13 +379,13 @@ impl FileHeader {
                 "Length of Data Extension Segment Subheader",
                 ldshs
                     .iter()
-                    .map(|l| parse_string_from_bytes(l))
+                    .map(parse_string_from_bytes)
                     .collect::<Result<Vec<String>, _>>()?,
             ),
             lds: Field::from_multiple_numeric(
                 "Length of Data Extension Segment",
                 lds.iter()
-                    .map(|l| parse_string_from_bytes(l))
+                    .map(parse_string_from_bytes)
                     .collect::<Result<Vec<String>, _>>()?,
             ),
             numres: Field::from_numeric(
@@ -396,13 +396,13 @@ impl FileHeader {
                 "Length of Reserved Extension Segment Subheader",
                 lreshs
                     .iter()
-                    .map(|l| parse_string_from_bytes(l))
+                    .map(parse_string_from_bytes)
                     .collect::<Result<Vec<String>, _>>()?,
             ),
             lres: Field::from_multiple_numeric(
                 "Length of Reserved Extension Segment",
                 lres.iter()
-                    .map(|l| parse_string_from_bytes(l))
+                    .map(parse_string_from_bytes)
                     .collect::<Result<Vec<String>, _>>()?,
             ),
             udhdl: Field::from_numeric(
