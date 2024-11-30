@@ -13,22 +13,22 @@ fn main() {
             print_image_segment_flag,
         }) => match File::open(input_file) {
             Ok(file) => {
-                if let Ok(nsif) = NSIF::parse(&file) {
-                    if print_image_segment_flag {
-                        for (i, image_segment) in nsif.image_segments.into_iter().enumerate() {
-                            println!("Image Segment {}:", i + 1);
-                            println!("{image_segment}");
-                        }
-                    } else if print_header_flag {
-                        println!("{}", nsif.file_header);
-                    } else if print_all_flag {
-                        // conflicts annotation, default_value_t annotation & else-if order needed to give us the
-                        // inteded effect. Probably need to simplify
-                        println!("{nsif}");
-                    }
-                } else {
+                let Ok(nsif) = NSIF::parse(&file) else {
                     eprintln!("Failed to parse given file");
                     process::exit(1);
+                };
+
+                if print_image_segment_flag {
+                    for (i, image_segment) in nsif.image_segments.into_iter().enumerate() {
+                        println!("Image Segment {}:", i + 1);
+                        println!("{image_segment}");
+                    }
+                } else if print_header_flag {
+                    println!("{}", nsif.file_header);
+                } else if print_all_flag {
+                    // conflicts annotation, default_value_t annotation & else-if order needed to give us the
+                    // inteded effect. Probably need to simplify
+                    println!("{nsif}");
                 }
             }
             Err(_) => {
@@ -51,19 +51,17 @@ fn main() {
                     eprintln!("Given Segment type is not implemented yet");
                     process::exit(1);
                 }
-                if let Ok(nsif) = NSIF::parse(&file) {
-                    if let Some(image_segment) = nsif.image_segments.get(segment_position - 1) {
-                        if let Err(e) = export_to_jpeg(image_segment, output_file) {
-                            eprintln!("Failed to export image segment to file");
-                            eprintln!("{e}");
-                            process::exit(1);
-                        }
-                    } else {
-                        eprintln!("No image segment detected at this position");
-                        process::exit(1);
-                    }
-                } else {
+                let Ok(nsif) = NSIF::parse(&file) else {
                     eprintln!("Failed to parse given file");
+                    process::exit(1);
+                };
+                let Some(image_segment) = nsif.image_segments.get(segment_position - 1) else {
+                    eprintln!("No image segment detected at this position");
+                    process::exit(1);
+                };
+                if let Err(e) = export_to_jpeg(image_segment, output_file) {
+                    eprintln!("Failed to export image segment to file");
+                    eprintln!("{e}");
                     process::exit(1);
                 }
             }
