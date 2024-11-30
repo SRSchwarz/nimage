@@ -7,6 +7,7 @@ use eframe::{
     },
     emath::TSTransform,
 };
+use egui::TextureHandle;
 use egui_notify::Toasts;
 use image::ImageReader;
 use nimage::nsif::{export::export_to_jpeg, field::Value, NSIF};
@@ -43,14 +44,14 @@ fn load_icon() -> Result<Arc<IconData>, Box<dyn std::error::Error>> {
 
 struct NImageViewer {
     nsif: Option<NSIF>,
-    texture: Option<egui::TextureHandle>,
+    texture: Option<TextureHandle>,
     initial_path: Option<PathBuf>,
     file_name: Option<String>,
     transform: TSTransform,
     image_response: Option<Response>,
     selected_image_segment_index: Option<usize>,
     image_was_updated: bool,
-    toasts: egui_notify::Toasts,
+    toasts: Toasts,
 }
 impl Default for NImageViewer {
     fn default() -> Self {
@@ -282,22 +283,22 @@ impl NImageViewer {
 
     fn update_image_segment_display(&mut self, ctx: &Context) {
         if let Some(image) = self.nsif.as_ref() {
-            if let Some(selected_segment) = self.selected_image_segment_index {
-                if let Some(image_segment) = image.image_segments.get(selected_segment) {
-                    if let Ok((height, width)) = image_segment.dimensions() {
-                        if let Ok(rgb_data) = image_segment.as_rgb() {
-                            self.texture = Some(ctx.load_texture(
-                                "image-segment",
-                                egui::ColorImage::from_rgb([width as _, height as _], &rgb_data),
-                                TextureOptions::default(),
-                            ));
-                        } else {
-                            self.toasts.error("Failed to display image segment");
-                        }
+            let Some(selected_segment) = self.selected_image_segment_index else {
+                self.texture = None;
+                return;
+            };
+            if let Some(image_segment) = image.image_segments.get(selected_segment) {
+                if let Ok((height, width)) = image_segment.dimensions() {
+                    if let Ok(rgb_data) = image_segment.as_rgb() {
+                        self.texture = Some(ctx.load_texture(
+                            "image-segment",
+                            egui::ColorImage::from_rgb([width as _, height as _], &rgb_data),
+                            TextureOptions::default(),
+                        ));
+                    } else {
+                        self.toasts.error("Failed to display image segment");
                     }
                 }
-            } else {
-                self.texture = None;
             }
         }
     }
