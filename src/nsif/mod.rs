@@ -5,7 +5,8 @@ use fileheader::FileHeader;
 use imagesegment::ImageSegment;
 use std::collections::BTreeMap;
 use std::{fmt::Display, fs::File};
-
+use std::num::ParseIntError;
+use std::string::FromUtf8Error;
 use self::field::Value;
 
 pub mod error;
@@ -128,8 +129,8 @@ impl Display for NSIF {
     }
 }
 
-pub fn parse_string_from_bytes(vec: &Vec<u8>) -> Result<String, Box<dyn std::error::Error>> {
-    String::from_utf8(vec.clone()).map_err(Into::into)
+pub fn parse_string_from_bytes(vec: &Vec<u8>) -> Result<String, FromUtf8Error> {
+    String::from_utf8(vec.clone())
 }
 
 pub fn parse_unsigned_integers_from_byte(vec: &[u8]) -> String {
@@ -141,14 +142,14 @@ pub fn parse_unsigned_integers_from_byte(vec: &[u8]) -> String {
 
 pub fn parse_number_from_bytes(vec: &Vec<u8>) -> Result<i32, Box<dyn std::error::Error>> {
     let s = parse_string_from_bytes(vec)?;
-    parse_number_from_string(&s)
+    parse_number_from_string(&s).map_err(Into::into)
 }
 
-pub fn parse_number_from_string(s: &str) -> Result<i32, Box<dyn std::error::Error>> {
+pub fn parse_number_from_string(s: &str) -> Result<i32, ParseIntError> {
     let s = s.trim_start_matches('0').to_owned();
     if s.is_empty() {
         Ok(0)
     } else {
-        s.parse::<i32>().map_err(Into::into)
+        s.parse::<i32>()
     }
 }

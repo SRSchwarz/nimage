@@ -7,6 +7,7 @@ use std::cmp::max;
 use std::fmt::Display;
 use std::vec;
 use std::{fs::File, io::Read};
+use zune_jpeg::errors::DecodeErrors;
 use zune_jpeg::JpegDecoder;
 
 #[derive(Debug, Reflect)]
@@ -41,32 +42,31 @@ impl ImageSegment {
     pub fn as_rgb(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
         if let Value::SingleAlphanumeric(ic) = &self.sub_header.ic.value {
             return match ic.value.as_str() {
-                "NC" => self.handle_nc(),
-                "C3" => self.handle_c3(),
-                "C8" => self.handle_c8(),
+                "NC" => self.handle_nc().map_err(Into::into),
+                "C3" => self.handle_c3().map_err(Into::into),
+                "C8" => self.handle_c8().map_err(Into::into),
                 _ => Err(Box::new(NsifError::IcNotSupported)),
             };
         }
         Err(Box::new(NsifError::ImageSegmentSubHeaderMalformed))
     }
 
-    fn handle_nc(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    fn handle_nc(&self) -> Result<Vec<u8>, NsifError> {
         if let Value::SingleAlphanumeric(imode) = &self.sub_header.imode.value {
             if imode.value.as_str() == "P" {
                 return Ok(self.data.clone());
             }
         }
-        Err(Box::new(NsifError::ImodeNotSupported))
+        Err(NsifError::ImodeNotSupported)
     }
 
-    fn handle_c3(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-        JpegDecoder::new(&self.data).decode().map_err(Into::into)
+    fn handle_c3(&self) -> Result<Vec<u8>, DecodeErrors> {
+        JpegDecoder::new(&self.data).decode()
     }
 
-    fn handle_c8(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    fn handle_c8(&self) -> Result<Vec<u8>, jpeg2k::error::Error> {
         jpeg2k::Image::from_bytes(self.data.as_slice())
             .and_then(|image| image.get_pixels(None))
-            .map_err(Into::into)
             .map(|image_data| image_data.data)
     }
 }
