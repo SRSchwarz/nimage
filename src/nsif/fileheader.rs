@@ -279,7 +279,7 @@ impl FileHeader {
                 parse_string_from_bytes(&fsdcdt)?,
             ),
             fsdcxm: Field::from_alphanumeric(
-                "File Declassifcation Exemption",
+                "File Declassification Exemption",
                 parse_string_from_bytes(&fsdcxm)?,
             ),
             fsdg: Field::from_alphanumeric("File Downgrade", parse_string_from_bytes(&fsdg)?),
@@ -288,7 +288,7 @@ impl FileHeader {
                 parse_string_from_bytes(&fsdgdt)?,
             ),
             fscltx: Field::from_alphanumeric(
-                "File Classifcation Text",
+                "File Classification Text",
                 parse_string_from_bytes(&fscltx)?,
             ),
             fscatp: Field::from_alphanumeric(
