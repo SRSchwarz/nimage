@@ -4,19 +4,19 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy_reflect = "0.14.2"
-clap = { version = "4.5.20", features = ["derive", "cargo"] }
-eframe = "0.29.1"
+bevy_reflect = "0.15.1"
+clap = { version = "4.5.27", features = ["derive", "cargo"] }
+eframe = "0.30.0"
 enum-as-inner = "0.6.1"
 egui_extras = { version = "*", features = ["all_loaders"] }
 image = { version = "0.25", features = ["jpeg", "png"] }
 jpeg-encoder = "0.6.0"
-jpeg2k = "0.6.6"
-rfd = "0.15.0"
+jpeg2k = "0.9.1"
+rfd = "0.15.2"
 strum = { version = "0.26.3", features = ["derive"] }
-zune-jpeg = "0.4.13"
-egui-notify = "0.17.0"
-thiserror = "2.0.1"
+zune-jpeg = "0.4.14"
+egui-notify = "0.18.0"
+thiserror = "2.0.11"
 
 [profile.dev.package.zune-jpeg]
 opt-level = 3

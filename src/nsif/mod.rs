@@ -1,13 +1,13 @@
+use self::field::Value;
 use bevy_reflect::Reflect;
 use bevy_reflect::Struct;
 use field::Field;
 use fileheader::FileHeader;
 use imagesegment::ImageSegment;
 use std::collections::BTreeMap;
-use std::{fmt::Display, fs::File};
 use std::num::ParseIntError;
 use std::string::FromUtf8Error;
-use self::field::Value;
+use std::{fmt::Display, fs::File};
 
 pub mod error;
 pub mod export;
@@ -38,7 +38,7 @@ pub trait PrettyPrint {
         let reflected_self: &dyn Struct = self;
         reflected_self
             .iter_fields()
-            .map(|f| f.downcast_ref::<Field>())
+            .map(|f| f.try_downcast_ref::<Field>())
             .for_each(|f| {
                 if let Some(field) = f {
                     let line = &format!("{}", field);
@@ -100,7 +100,7 @@ impl NSIF {
         let reflected_fileheader: &dyn Struct = &self.file_header;
         let fileheader_fields = reflected_fileheader
             .iter_fields()
-            .filter_map(|field| field.downcast_ref::<Field>())
+            .filter_map(|field| field.try_downcast_ref::<Field>())
             .collect();
         fields.insert(String::from("File Header"), fileheader_fields);
 
@@ -108,7 +108,7 @@ impl NSIF {
             let reflected_subheader: &dyn Struct = &image_segment.sub_header;
             let image_segment_fields = reflected_subheader
                 .iter_fields()
-                .filter_map(|field| field.downcast_ref::<Field>())
+                .filter_map(|field| field.try_downcast_ref::<Field>())
                 .collect::<Vec<&Field>>();
             fields.insert(format!("Image Segment {}", i + 1), image_segment_fields);
         }

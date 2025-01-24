@@ -7,6 +7,7 @@ use std::cmp::max;
 use std::fmt::Display;
 use std::vec;
 use std::{fs::File, io::Read};
+use jpeg2k::ImagePixelData;
 use zune_jpeg::errors::DecodeErrors;
 use zune_jpeg::JpegDecoder;
 
@@ -67,7 +68,15 @@ impl ImageSegment {
     fn handle_c8(&self) -> Result<Vec<u8>, jpeg2k::error::Error> {
         jpeg2k::Image::from_bytes(self.data.as_slice())
             .and_then(|image| image.get_pixels(None))
-            .map(|image_data| image_data.data)
+            .and_then(|image_data| {
+                return match image_data.data {
+                    ImagePixelData::L8(data)
+                    | ImagePixelData::La8(data)
+                    | ImagePixelData::Rgb8(data)
+                    | ImagePixelData::Rgba8(data) => Ok(data),
+                    _ => Err(jpeg2k::error::Error::UnknownFormatError(String::from("unsupported pixel format encountered")))
+                }
+            })
     }
 }
 
