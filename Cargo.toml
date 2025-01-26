@@ -1,0 +1,36 @@
+[package]
+name = "nimage"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+bevy_reflect = "0.15.1"
+clap = { version = "4.5.27", features = ["derive", "cargo"] }
+eframe = "0.30.0"
+enum-as-inner = "0.6.1"
+egui_extras = { version = "*", features = ["all_loaders"] }
+image = { version = "0.25", features = ["jpeg", "png"] }
+jpeg-encoder = "0.6.0"
+jpeg2k = "0.9.1"
+rfd = "0.15.2"
+strum = { version = "0.26.3", features = ["derive"] }
+zune-jpeg = "0.4.14"
+egui-notify = "0.18.0"
+thiserror = "2.0.11"
+
+[profile.dev.package.zune-jpeg]
+opt-level = 3
+
+[package.metadata.generate-rpm]
+name = "NImage"
+summary = "A NSIF viewer"
+license = "MIT"
+vendor = "Simon Schwarz"
+url = "https://github.com/SRSchwarz/nimage"
+icon = "assets/nimage-logo-128x128.png"
+assets = [
+    { dest = "/usr/bin/nimage", source = "target/release/nimage", mode = "0755" },
+    { dest = "/usr/bin/nimage_viewer", source = "target/release/nimage_viewer", mode = "0755" },
+    { dest = "/usr/share/applications/nimage.desktop", source = "assets/nimage.desktop", mode = "0644" },
+    { dest = "/usr/share/icons/hicolor/128x128/apps/nimage.png", source = "assets/nimage-logo-128x128.png", mode = "0644" },
+]
