@@ -4,7 +4,6 @@ use crate::nsif::field::{Field, Value};
 use crate::nsif::parse_number_from_string;
 use bevy_reflect::Reflect;
 use std::cmp::max;
-use std::fmt::Display;
 use std::vec;
 use std::{fs::File, io::Read};
 use jpeg2k::ImagePixelData;
@@ -544,8 +543,8 @@ impl ImageSubheader {
 
 impl PrettyPrint for ImageSubheader {}
 
-impl Display for ImageSegment {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.sub_header.pretty_print())
+impl PrettyPrint for ImageSegment {
+    fn pretty_print(&self, include_empty_fields: bool) -> String {
+       self.sub_header.pretty_print(include_empty_fields)
     }
 }

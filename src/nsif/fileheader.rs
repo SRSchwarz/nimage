@@ -6,7 +6,6 @@ use super::{
 use crate::nsif::field::Field;
 use bevy_reflect::Reflect;
 use std::cmp::max;
-use std::fmt::Display;
 use std::vec;
 use std::{fs::File, io::Read};
 
@@ -431,9 +430,3 @@ impl FileHeader {
 }
 
 impl PrettyPrint for FileHeader {}
-
-impl Display for FileHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.pretty_print())
-    }
-}

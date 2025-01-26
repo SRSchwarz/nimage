@@ -1,4 +1,5 @@
 use clap::{crate_version, Args, Parser, Subcommand, ValueEnum};
+use nimage::nsif::PrettyPrint;
 use nimage::nsif::{export::export_to_jpeg, NSIF};
 use std::{fs::File, path::PathBuf, process};
 use strum::Display;
@@ -11,6 +12,7 @@ fn main() {
             print_all_flag,
             print_header_flag,
             print_image_segment_flag,
+            exclude_empty_fields_flag,
         }) => match File::open(input_file) {
             Ok(file) => {
                 let Ok(nsif) = NSIF::parse(&file) else {
@@ -21,14 +23,17 @@ fn main() {
                 if print_image_segment_flag {
                     for (i, image_segment) in nsif.image_segments.into_iter().enumerate() {
                         println!("Image Segment {}:", i + 1);
-                        println!("{image_segment}");
+                        println!("{}", image_segment.pretty_print(print_image_segment_flag));
                     }
                 } else if print_header_flag {
-                    println!("{}", nsif.file_header);
+                    println!(
+                        "{}",
+                        nsif.file_header.pretty_print(exclude_empty_fields_flag)
+                    );
                 } else if print_all_flag {
                     // conflicts annotation, default_value_t annotation & else-if order needed to give us the
                     // inteded effect. Probably need to simplify
-                    println!("{nsif}");
+                    println!("{}", nsif.pretty_print(exclude_empty_fields_flag));
                 }
             }
             Err(_) => {
@@ -111,6 +116,9 @@ pub struct InfoArgs {
     /// Print only image segment metadata
     #[arg(long = "image", conflicts_with_all = vec!["print_all_flag", "print_header_flag"], action)]
     pub print_image_segment_flag: bool,
+    /// Do not print empty fields
+    #[arg(long = "exclude-empty", default_value_t = false)]
+    pub exclude_empty_fields_flag: bool,
 }
 
 #[derive(Debug, Args)]

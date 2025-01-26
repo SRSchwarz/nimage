@@ -8,6 +8,16 @@ pub struct Field {
     pub value: Value,
 }
 
+pub trait IsEmpty {
+    fn is_empty(&self) -> bool;
+}
+
+impl IsEmpty for Field {
+    fn is_empty(&self) -> bool {
+        self.value.is_empty()
+    }
+}
+
 #[derive(Debug, Reflect, EnumAsInner)]
 pub enum Value {
     SingleAlphanumeric(AlphanumericValue), // BCS vs ECS?
@@ -127,4 +137,33 @@ impl Display for Field {
             }
         }
     }
+}
+
+impl IsEmpty for Value {
+    fn is_empty(&self) -> bool {
+        match self {
+            Value::SingleAlphanumeric(value) => is_empty_or_null(value.value.as_str()),
+            Value::MultipleAlphanumeric(values) => values
+                .into_iter()
+                .all(|a| is_empty_or_null(a.value.as_str())),
+            Value::SingleNumeric(value) => is_empty_or_null(value.value.as_str()),
+            Value::MultipleNumeric(values) => values
+                .into_iter()
+                .all(|a| is_empty_or_null(a.value.as_str())),
+            Value::NestedNumeric(outer_values) => outer_values.into_iter().all(|values| {
+                values
+                    .into_iter()
+                    .all(|a| is_empty_or_null(a.value.as_str()))
+            }),
+            Value::NestedAlphaNumeric(outer_values) => outer_values.into_iter().all(|values| {
+                values
+                    .into_iter()
+                    .all(|a| is_empty_or_null(a.value.as_str()))
+            }),
+        }
+    }
+}
+
+fn is_empty_or_null(s: &str) -> bool {
+    s.trim().is_empty() || s.trim().chars().all(|c| c == '\0')
 }

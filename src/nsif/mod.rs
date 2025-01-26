@@ -5,9 +5,10 @@ use field::Field;
 use fileheader::FileHeader;
 use imagesegment::ImageSegment;
 use std::collections::BTreeMap;
+use std::fs::File;
 use std::num::ParseIntError;
 use std::string::FromUtf8Error;
-use std::{fmt::Display, fs::File};
+use crate::nsif::field::IsEmpty;
 
 pub mod error;
 pub mod export;
@@ -29,7 +30,7 @@ pub struct NSIF {
 }
 
 pub trait PrettyPrint {
-    fn pretty_print(&self) -> String
+    fn pretty_print(&self, exclude_empty_fields: bool) -> String
     where
         Self: Struct,
         Self: Sized,
@@ -42,7 +43,8 @@ pub trait PrettyPrint {
             .for_each(|f| {
                 if let Some(field) = f {
                     let line = &format!("{}", field);
-                    if !line.trim().is_empty() {
+                    if !line.trim().is_empty() && (!exclude_empty_fields || !field.is_empty())
+                    {
                         pretty.push_str(&format!("    {}\n", line));
                     }
                 }
@@ -51,6 +53,8 @@ pub trait PrettyPrint {
         pretty
     }
 }
+
+
 /*
 #[derive(Debug)]
 struct GraphicSegment {}
@@ -117,15 +121,17 @@ impl NSIF {
     }
 }
 
-impl Display for NSIF {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "File Header:")?;
-        writeln!(f, "{}", self.file_header)?;
+impl PrettyPrint for NSIF {
+    fn pretty_print(&self, include_empty_fields: bool) -> String {
+        let mut pretty = String::new();
+        pretty.push_str("File Header:\n");
+        pretty.push_str(self.file_header.pretty_print(include_empty_fields).as_str());
         for (i, image_segment) in self.image_segments.iter().enumerate() {
-            writeln!(f, "Image Segment {}:", (i + 1))?;
-            write!(f, "{}", image_segment)?;
+            pretty.push_str("\n");
+            pretty.push_str(format!("Image Segment {}:\n", i+1).as_str());
+            pretty.push_str(image_segment.pretty_print(include_empty_fields).as_str());
         }
-        Ok(())
+        pretty
     }
 }
 
