@@ -322,8 +322,10 @@ impl ImageSubheader {
             file.read_exact(&mut udid)?;
         }
         file.read_exact(&mut ixshdl)?;
-        file.read_exact(&mut ixsofl)?;
-        let ixshdl_length = max(parse_number_from_bytes(&ixshdl).unwrap_or(0) - 3, 0);
+        let ixshdl_length = max(parse_number_from_bytes(&ixshdl).unwrap_or(3) - 3, 0);
+        if ixshdl_length != 0 {
+            file.read_exact(&mut ixsofl)?;
+        }
         let mut ixshd = vec![0; ixshdl_length as usize];
         if ixshdl_length != 0 {
             file.read_exact(&mut ixshd)?;
