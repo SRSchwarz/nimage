@@ -1,22 +1,22 @@
 [package]
 name = "nimage"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 
 [dependencies]
-bevy_reflect = "0.15.1"
-clap = { version = "4.5.27", features = ["derive", "cargo"] }
-eframe = "0.30.0"
+bevy_reflect = "0.15.3"
+clap = { version = "4.5.35", features = ["derive", "cargo"] }
+eframe = "0.31.1"
 enum-as-inner = "0.6.1"
 egui_extras = { version = "*", features = ["all_loaders"] }
 image = { version = "0.25", features = ["jpeg", "png"] }
-jpeg-encoder = "0.6.0"
+jpeg-encoder = "0.6.1"
 jpeg2k = "0.9.1"
-rfd = "0.15.2"
-strum = { version = "0.26.3", features = ["derive"] }
+rfd = "0.15.3"
+strum = { version = "0.27.1", features = ["derive"] }
 zune-jpeg = "0.4.14"
-egui-notify = "0.18.0"
-thiserror = "2.0.11"
+egui-notify = "0.19.0"
+thiserror = "2.0.12"
 
 [profile.dev.package.zune-jpeg]
 opt-level = 3
