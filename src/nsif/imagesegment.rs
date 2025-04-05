@@ -530,12 +530,13 @@ impl ImageSubheader {
             ),
             ixsofl: Field::from_numeric(
                 "Image Extended Subheader Overflow",
-                parse_string_from_bytes(&ixsofl)?,
+                parse_string_from_bytes(&ixsofl)
+                    .unwrap_or("Failed to parse Extended Subheader Overflow".to_string()),
             ),
             ixshd: Field::from_alphanumeric(
                 "Image Extended Subheader Data",
                 parse_string_from_bytes(&ixshd)
-                    .map_err(|_| "Failed to parse Extended Subheader Data")?,
+                    .unwrap_or("Failed to parse Extended Subheader Data".to_string()),
             ),
         })
     }
