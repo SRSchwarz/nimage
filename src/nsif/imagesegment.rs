@@ -3,10 +3,10 @@ use crate::nsif::error::NsifError;
 use crate::nsif::field::{Field, Value};
 use crate::nsif::parse_number_from_string;
 use bevy_reflect::Reflect;
+use jpeg2k::ImagePixelData;
 use std::cmp::max;
 use std::vec;
 use std::{fs::File, io::Read};
-use jpeg2k::ImagePixelData;
 use zune_jpeg::errors::DecodeErrors;
 use zune_jpeg::JpegDecoder;
 
@@ -73,8 +73,10 @@ impl ImageSegment {
                     | ImagePixelData::La8(data)
                     | ImagePixelData::Rgb8(data)
                     | ImagePixelData::Rgba8(data) => Ok(data),
-                    _ => Err(jpeg2k::error::Error::UnknownFormatError(String::from("unsupported pixel format encountered")))
-                }
+                    _ => Err(jpeg2k::error::Error::UnknownFormatError(String::from(
+                        "unsupported pixel format encountered",
+                    ))),
+                };
             })
     }
 }
@@ -320,13 +322,10 @@ impl ImageSubheader {
             file.read_exact(&mut udid)?;
         }
         file.read_exact(&mut ixshdl)?;
-        let ixshdl_length = parse_number_from_bytes(&ixshdl).unwrap_or(0);
+        file.read_exact(&mut ixsofl)?;
+        let ixshdl_length = max(parse_number_from_bytes(&ixshdl).unwrap_or(0) - 3, 0);
+        let mut ixshd = vec![0; ixshdl_length as usize];
         if ixshdl_length != 0 {
-            file.read_exact(&mut ixsofl)?;
-        }
-        let ixsofl_length = max(parse_number_from_bytes(&ixsofl).unwrap_or(3) - 3, 0);
-        let mut ixshd = vec![0; ixsofl_length as usize];
-        if ixsofl_length != 0 {
             file.read_exact(&mut ixshd)?;
         }
 
@@ -535,7 +534,8 @@ impl ImageSubheader {
             ),
             ixshd: Field::from_alphanumeric(
                 "Image Extended Subheader Data",
-                parse_string_from_bytes(&ixshd)?,
+                parse_string_from_bytes(&ixshd)
+                    .map_err(|_| "Failed to parse Extended Subheader Data")?,
             ),
         })
     }
@@ -545,6 +545,6 @@ impl PrettyPrint for ImageSubheader {}
 
 impl PrettyPrint for ImageSegment {
     fn pretty_print(&self, include_empty_fields: bool) -> String {
-       self.sub_header.pretty_print(include_empty_fields)
+        self.sub_header.pretty_print(include_empty_fields)
     }
 }
